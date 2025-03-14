@@ -85,3 +85,72 @@ console.log(doubled()); // 15
 const squared = computed(() => doubled() * doubled());
 console.log(squared()); // 225 (15 * 15)
 ```
+
+## Performance Optimizations
+
+@hellajs/reactive includes several performance optimizations:
+
+### Signal Equality Checking
+
+Signals support custom equality functions to prevent unnecessary updates for complex objects:
+
+```ts
+// Default behavior uses reference equality (===)
+const obj = signal({ count: 0 });
+
+// Custom equality function for deep object comparison
+const objWithCustomEquality = signal(
+  { count: 0 },
+  {
+    equals: (a, b) => JSON.stringify(a) === JSON.stringify(b),
+  }
+);
+
+// Now this won't trigger updates if the structure is the same
+objWithCustomEquality.set({ count: 0 }); // No updates triggered
+```
+
+### Memoization for Computed Values
+
+Computed values are lazily evaluated with efficient dependency tracking:
+
+- Values are only recalculated when accessed after dependencies change
+- Internal values are cached to avoid redundant calculations
+- Dependencies are tracked with efficient data structures
+
+### Best Practices for Performance
+
+1. **Batching Updates**: Wrap multiple updates in a batch for better performance
+
+   ```ts
+   import { batch } from "@hellajs/reactive";
+
+   batch(() => {
+     count.set(count() + 1);
+     name.set("New name");
+     // Effects run only once at the end of the batch
+   });
+   ```
+
+2. **Granular Signals**: Split large state objects into multiple signals to avoid unnecessary rerenders
+
+   ```ts
+   // Better than one large object
+   const firstName = signal("John");
+   const lastName = signal("Doe");
+   const age = signal(30);
+   ```
+
+3. **Use Computed for Derived Data**: Let the system handle dependencies efficiently
+
+   ```ts
+   // More efficient than recalculating in effects
+   const fullName = computed(() => `${firstName()} ${lastName()}`);
+   ```
+
+4. **Cleaning Up**: Dispose of computed values and effects when no longer needed
+   ```ts
+   const computedValue = computed(() => /* ... */);
+   // When done:
+   (computedValue as any)._cleanup();
+   ```

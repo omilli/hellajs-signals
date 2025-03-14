@@ -1,5 +1,9 @@
 // Types
-export type SignalValue<T> = () => T;
+export type SignalValue<T> = {
+  (): T;
+  _cleanup: () => void;
+  _isComputed: boolean;
+};
 export type SignalSetter<T> = (value: T) => void;
 export type Signal<T> = {
   (): T;
@@ -10,3 +14,6 @@ export type Signal<T> = {
 export type EffectFn = () => void;
 export type ComputedFn<T> = () => T;
 export type CleanupFunction = () => void;
+
+// New type for equality functions
+export type EqualityFn<T> = (a: T, b: T) => boolean;

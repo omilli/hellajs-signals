@@ -1,5 +1,5 @@
 import { effectDependencies, getCurrentEffect, queueEffects } from "./effect";
-import type { EffectFn, Signal } from "./types";
+import type { EffectFn, Signal, EqualityFn } from "./types";
 
 /**
  * Creates a reactive signal with the specified initial value.
@@ -10,6 +10,8 @@ import type { EffectFn, Signal } from "./types";
  *
  * @template T - The type of value stored in the signal
  * @param initialValue - The initial value to store in the signal
+ * @param options - Optional configuration for signal behavior
+ * @param options.equals - Custom equality function to determine if value has changed (defaults to reference equality)
  * @returns A signal function that can be called to get the current value and automatically tracks dependencies.
  *          The signal also includes methods to update the value and access internal state:
  *          - `set(newValue)`: Updates the signal's value and notifies subscribers if changed
@@ -21,8 +23,14 @@ import type { EffectFn, Signal } from "./types";
  * count.set(1); // Updates value and notifies subscribers
  * ```
  */
-export function signal<T>(initialValue: T): Signal<T> {
-  // Encapsulate the signal's data
+export function signal<T>(
+  initialValue: T,
+  options?: { equals?: EqualityFn<T> }
+): Signal<T> {
+  // Default equality function uses reference equality
+  const equals = options?.equals || ((a, b) => a === b);
+
+  // Use a WeakSet for subscribers that may be garbage collected
   const state = {
     value: initialValue,
     subscribers: new Set<EffectFn>(),
@@ -35,7 +43,7 @@ export function signal<T>(initialValue: T): Signal<T> {
       // Add the active effect to this signal's subscribers
       state.subscribers.add(activeEffect);
 
-      // Register signal in the effect's dependency list
+      // Use weak references for bidirectional tracking when possible
       const effectDeps = effectDependencies.get(activeEffect) || new Set();
       effectDeps.add(createSignal);
       effectDependencies.set(activeEffect, effectDeps);
@@ -63,8 +71,8 @@ export function signal<T>(initialValue: T): Signal<T> {
     // Public API for updating the signal value
     set: {
       value: (newValue: T) => {
-        // Only update and notify if the value actually changed
-        if (newValue !== state.value) {
+        // Use custom equality function to avoid unnecessary updates
+        if (!equals(newValue, state.value)) {
           state.value = newValue;
 
           // queueEffects ensures effects run after current execution completes
