@@ -8,6 +8,7 @@ export type SignalSetter<T> = (value: T) => void;
 export interface Signal<T> {
   (): T;
   set: SignalSetter<T>;
+  update: (updater: (value: T) => T) => void;
   _value: T;
   _deps: Set<EffectFn>;
 }

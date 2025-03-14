@@ -96,5 +96,18 @@ describe("signal", () => {
       dynamicSignal.set(456);
       expect(mockFn).toHaveBeenCalledTimes(2);
     });
+
+    test("should handle concurrent signal updates correctly", async () => {
+      const count = signal(0);
+      await Promise.all([
+        (async () => {
+          for (let i = 0; i < 100; i++) count.update((v) => v + 1);
+        })(),
+        (async () => {
+          for (let i = 0; i < 100; i++) count.update((v) => v + 1);
+        })(),
+      ]);
+      expect(count()).toBe(200);
+    });
   });
 });

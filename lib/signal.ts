@@ -68,7 +68,7 @@ export function signal<T>(
       get: () => state.subscribers, // Set of effects
     },
 
-    // Public API for updating the signal value
+    // Public API for Non-Atomic updates
     set: {
       value: (newValue: T) => {
         // Use custom equality function to avoid unnecessary updates
@@ -79,6 +79,14 @@ export function signal<T>(
           // and respects batching for efficiency
           queueEffects(state.subscribers);
         }
+      },
+    },
+
+    // Public API for Atomic updates
+    update: {
+      value: (updater: (currentValue: T) => T) => {
+        const newValue = updater(state.value);
+        createSignal.set(newValue);
       },
     },
   });
