@@ -15,7 +15,7 @@ import type {
 } from "./types";
 
 // Create a symbol for storing the default context
-const DEFAULT_CONTEXT_KEY = Symbol.for("@hellajs/reactive/context");
+const DEFAULT_CONTEXT_KEY = Symbol.for("reactiveCcontext");
 
 /**
  * Creates an isolated reactive context
