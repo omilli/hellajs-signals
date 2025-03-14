@@ -1,9 +1,13 @@
 import { describe, test, expect, mock, spyOn } from "bun:test";
-import { signal } from "../lib/signal";
-import { effect, effectDependencies, getCurrentEffect } from "../lib/effect";
-import { computed } from "../lib/computed";
-import { batch } from "../lib/batch";
-import { untracked } from "../lib/untracked";
+import {
+  signal,
+  effect,
+  effectDependencies,
+  getCurrentEffect,
+  computed,
+  batch,
+  untracked,
+} from "../lib";
 
 describe("signal", () => {
   describe("basic", () => {

@@ -9,4 +9,4 @@ export type Signal<T> = {
 };
 export type EffectFn = () => void;
 export type ComputedFn<T> = () => T;
-export type DisposeFunction = () => void;
+export type CleanupFunction = () => void;

@@ -1,43 +1,99 @@
 import { effect } from "./effect";
 import { signal } from "./signal";
+import { untracked } from "./untracked";
 import type { ComputedFn, SignalValue } from "./types";
-
 /**
- * Creates a computed value derived from other signals
+ * Creates a computed value that automatically updates when its dependencies change.
+ * The computed value is lazily evaluated, meaning it only recalculates when accessed
+ * and when its dependencies have changed.
+ *
+ * @template T - The type of value that this computed function returns
+ * @param derive - A function that derives the computed value from other signals or state
+ * @returns An accessor function that returns the current computed value
+ *
+ * @example
+ * ```typescript
+ * const count = signal(0);
+ * const doubled = computed(() => count() * 2);
+ * console.log(doubled()); // 0
+ * count.set(5);
+ * console.log(doubled()); // 10
+ * ```
  */
-export function computed<T>(compute: ComputedFn<T>): SignalValue<T> {
-  // Calculate initial value with one execution only
-  const initialValue = compute();
-  const sig = signal<T>(initialValue);
+export function computed<T>(deriveFn: ComputedFn<T>): SignalValue<T> {
+  // Track the computation's internal state
+  const computationState = {
+    needsUpdate: false,
+    disposed: false,
+  };
 
-  // Add a dirty flag to avoid unnecessary recalculations
-  let dirty = false;
+  // Calculate initial value outside of tracking context to avoid circular dependencies
+  // and prevent the initial calculation from creating dependencies
+  const initialValue = untracked(() => deriveFn());
 
-  // Create an effect to track dependencies and mark as dirty when they change
-  const dispose = effect(() => {
-    // Always mark as dirty when dependencies change
-    // This ensures the computed value updates when any dependency changes
-    dirty = true;
+  // Create a backing signal to store the computed value
+  const backingSignal = signal<T>(initialValue);
 
-    // Track dependencies by running the compute function
-    // We don't need firstRun logic since we always just mark as dirty
-    compute();
+  // Set up an effect which runs whenever any dependency changes
+  const cleanup = effect(() => {
+    // Early return if the computation has been disposed
+    if (computationState.disposed) return;
+
+    // Mark that the value needs recalculation on next access (lazy evaluation)
+    computationState.needsUpdate = true;
+
+    // Execute the derivation to capture all dependencies.
+    // This effect will re-run when dependencies change
+    deriveFn();
   });
 
-  // Return a getter function that checks for dirtiness and recomputes only when needed
-  const computedGetter = () => {
-    if (dirty) {
-      // Only recompute when accessed and dirty
-      sig.set(compute());
-      dirty = false;
+  // Lazy evaluation - consumers call to get the computed value when needed
+  const accessor = () => {
+    // Check if we need to recalculate the value before returning
+    // Only update if both: (1) dependencies have changed, and (2) not disposed
+    if (computationState.needsUpdate && !computationState.disposed) {
+      // Calculate the new value
+      const newValue = deriveFn();
+
+      // Update backing storage with the new value
+      backingSignal.set(newValue);
+
+      // Reset the update flag since we're now up-to-date
+      computationState.needsUpdate = false;
     }
-    return sig();
+
+    // Return the current value from our backing storage
+    // This also tracks dependencies if called within another effect or computed
+    return backingSignal();
   };
 
-  // Add dispose capability to prevent memory leaks
-  (computedGetter as any)._dispose = () => {
-    dispose();
+  // Add metadata and methods to the accessor function
+  // These are non-enumerable properties by default with Object.defineProperties
+  Object.defineProperties(accessor, {
+    // Marker to identify this as a computed value (for debugging and tooling)
+    _isComputed: { value: true },
+
+    // Method to properly dispose of this computed value
+    // Prevents memory leaks by cleaning up effect subscriptions
+    _cleanup: {
+      value: () => {
+        // Mark as disposed so the effect won't run anymore
+        computationState.disposed = true;
+
+        // Clean up the tracking effect to remove subscriptions
+        // This ensures this computed value no longer receives updates
+        cleanup();
+      },
+    },
+  });
+
+  // For backward compatibility with earlier APIs
+  // Some consuming code might expect _dispose instead of _cleanup
+  (accessor as any)._dispose = () => {
+    (accessor as any)._cleanup();
   };
 
-  return computedGetter;
+  // Return the accessor function as the public API
+  // Callers will invoke this function to get the current computed value
+  return accessor;
 }

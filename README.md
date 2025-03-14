@@ -4,98 +4,84 @@ A reactive javascript library
 
 ## API
 
-### signal(value)
+### signal(initialValue)
+
+Creates a reactive signal with the specified initial value.
 
 ```ts
-const counter = signal(0);
-setInterval(() => {
-  counter.set(counter() + 1);
-}, 1000);
+function signal<T>(initialValue: T): Signal<T>;
 ```
 
-### computed
+A signal is a reactive primitive that holds a value and notifies subscribers when the value changes. It provides a way to create reactive state that automatically tracks dependencies and updates dependent computations when the value changes.
+
+#### Parameters
+
+- `initialValue` - The initial value to store in the signal
+
+#### Returns
+
+A signal function that can be called to get the current value. The returned function also has a `set` method to update the value.
+
+#### Example
 
 ```ts
-const counter = signal(0);
-const double = computed(() => counter() * 2);
-setInterval(() => {
-  counter.set(counter() + 1);
-}, 1000);
+// Create a signal with an initial value of 0
+const count = signal(0);
+
+// Get the current value by calling the signal as a function
+console.log(count()); // 0
+
+// Update the value with .set()
+count.set(1);
+console.log(count()); // 1
+
+// Signals can hold any type of value
+const user = signal({ name: "Alice", age: 30 });
+console.log(user().name); // 'Alice'
+
+// Update values
+user.set({ name: "Bob", age: 25 });
 ```
 
-### effect
+### computed(deriveFn)
+
+Creates a computed value that automatically updates when its dependencies change.
 
 ```ts
-const counter = signal(0);
-setInterval(() => {
-  counter.set(counter() + 1);
-}, 1000);
-effect(() => {
-  console.log(`counter updated: ${counter()}`);
-});
+function computed<T>(deriveFn: ComputedFn<T>): SignalValue<T>;
 ```
 
-### Performance Enhancements
+Computed values are lazily evaluated, meaning they only recalculate when accessed and when their dependencies have changed. Dependencies are automatically tracked when the derive function reads from signals or other computed values.
 
-#### Memoization for computed values
+#### Parameters
 
-Computed values are memoized to avoid unnecessary recalculations:
+- `deriveFn` - A function that derives the computed value from other signals or state
 
-```ts
-const expensive = computed(() => {
-  console.log("Computing...");
-  return heavyCalculation(input());
-});
+#### Returns
 
-// First access computes the value
-const value1 = expensive();
+An accessor function that returns the current computed value. When called within an effect or another computed value, it will automatically establish dependency relationships.
 
-// Second access returns cached value without recomputing
-const value2 = expensive();
-
-// Only recomputes when dependencies change
-input.set(newValue);
-const value3 = expensive(); // Recomputes
-```
-
-#### Prioritized effect execution
-
-Effects can be given priorities to control their execution order:
+#### Example
 
 ```ts
-// This high-priority effect runs before normal and low-priority effects
-effect(() => updateCriticalUI(value()), { priority: "high" });
+// Create signals to hold base values
+const count = signal(0);
+const multiplier = signal(2);
 
-// Normal priority (default)
-effect(() => updateUI(value()));
+// Create a computed value based on these signals
+const doubled = computed(() => count() * multiplier());
 
-// Low priority effects run last
-effect(() => logStateChange(value()), { priority: "low" });
-```
+// Access the computed value
+console.log(doubled()); // 0
 
-### Batch updates
+// When dependencies change, the computed value updates
+count.set(5);
+console.log(doubled()); // 10
 
-Group multiple signal updates to trigger effects only once at the end:
+multiplier.set(3);
+console.log(doubled()); // 15
 
-```ts
-batch(() => {
-  firstName.set("John");
-  lastName.set("Doe");
-  age.set(30);
-  // Effects depending on these signals will only run once
-});
-```
-
-### Untracking signal dependencies
-
-Read signals without creating dependencies:
-
-```ts
-effect(() => {
-  // This creates a dependency
-  const name = userName();
-
-  // This reads the value without creating a dependency
-  const debugValue = untrack(() => debugState());
-});
+// Computed values can depend on other computed values
+const squared = computed(() => doubled() * doubled());
+console.log(squared()); // 225 (15 * 15)
 ```

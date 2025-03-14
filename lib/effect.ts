@@ -1,80 +1,81 @@
 import { getBatchDepth } from "./batch";
-import type { DisposeFunction, EffectFn, Signal } from "./types";
+import type { CleanupFunction, EffectFn, Signal } from "./types";
 
-// Track the currently executing effect
-let currentEffect: EffectFn | null;
+// Using a symbolic sentinel instead of null
+const NOT_TRACKING = Symbol("not-tracking");
+let activeTracker: EffectFn | typeof NOT_TRACKING = NOT_TRACKING;
 
-let pendingEffects: Set<EffectFn> = new Set<EffectFn>();
-// Tracking for circular dependencies
-let runningEffects: Set<EffectFn> = new Set<EffectFn>();
+// Use a more efficient notification queue
+const pendingNotifications: EffectFn[] = [];
+const pendingRegistry = new Set<EffectFn>();
+const executionContext: EffectFn[] = [];
 
-export const getCurrentEffect = (): EffectFn | null => currentEffect;
+export const getCurrentEffect = (): EffectFn | null =>
+  activeTracker === NOT_TRACKING ? null : activeTracker;
 
 export const setCurrentEffect = (value: EffectFn | null): void => {
-  currentEffect = value;
+  activeTracker = value === null ? NOT_TRACKING : value;
 };
 
-// Map to track effect dependencies for bidirectional reference
-export const effectDependencies: Map<EffectFn, Set<Signal<any>>> = new Map<
-  EffectFn,
-  Set<Signal<any>>
->();
+// Dependency registry with more descriptive name
+export const effectDependencies: Map<EffectFn, Set<Signal<any>>> = new Map();
 
 /**
  * Creates an effect that runs when its dependencies change
- * Returns a function that can be called to dispose the effect
  */
-export function effect(fn: EffectFn): DisposeFunction {
-  // Effect function wrapper that sets current effect and runs the function
-  const effectFn = () => {
-    // Prevent circular dependencies
-    if (runningEffects.has(effectFn)) {
+export function effect(fn: EffectFn): CleanupFunction {
+  // Create an observer function
+  const observer = () => {
+    // Prevent infinite recursion with execution context tracking
+    if (executionContext.includes(observer)) {
       console.warn("Circular dependency detected in effect", {
-        effectId: String(effectFn).slice(0, 50),
-        runningEffectsSize: runningEffects.size,
+        runningEffectsSize: executionContext.length,
+        effectId: observer.toString().substring(0, 50),
       });
       return;
     }
 
-    // Clean up old dependencies (efficiently using bidirectional tracking)
-    cleanupEffect(effectFn);
+    // Remove prior subscriptions
+    unsubscribeDependencies(observer);
 
-    // Track and run the effect
-    const prevEffect = currentEffect;
-    currentEffect = effectFn;
-    runningEffects.add(effectFn);
+    // Establish tracking context
+    const previousTracker = activeTracker;
+    activeTracker = observer;
+    executionContext.push(observer);
 
     try {
       fn();
     } catch (error) {
       console.error("Error in effect:", error);
     } finally {
-      runningEffects.delete(effectFn);
-      currentEffect = prevEffect;
+      executionContext.pop();
+      activeTracker = previousTracker;
     }
   };
 
-  // Ensure clean initialization of dependencies
-  effectDependencies.set(effectFn, new Set());
+  // Create dependency tracking set
+  effectDependencies.set(observer, new Set());
 
-  // Run the effect once immediately
-  effectFn();
+  // Execute immediately to establish dependencies
+  observer();
 
-  // Return a dispose function
-  return (): void => {
-    cleanupEffect(effectFn);
-    pendingEffects.delete(effectFn);
-    effectDependencies.delete(effectFn);
+  // Return cleanup function
+  return () => {
+    unsubscribeDependencies(observer);
+    pendingRegistry.delete(observer);
+    effectDependencies.delete(observer);
   };
 }
 
 /**
- * Queue effects to run after the current batch completes
- * with deduplication built-in through the Set data structure
+ * Schedule effects to run after current operations complete
  */
 export function queueEffects(effects: Set<EffectFn>): void {
   effects.forEach((effect) => {
-    pendingEffects.add(effect);
+    if (!pendingRegistry.has(effect)) {
+      pendingRegistry.add(effect);
+      pendingNotifications.push(effect);
+    }
   });
 
   if (getBatchDepth() === 0) {
@@ -83,35 +84,29 @@ export function queueEffects(effects: Set<EffectFn>): void {
 }
 
 /**
- * Run all pending effects
- * Could be enhanced to prioritize based on dependency graph
+ * Process all queued effects
  */
 export function flushEffects(): void {
-  if (pendingEffects.size > 0) {
-    const effectsToRun = [...pendingEffects];
-    pendingEffects.clear();
+  if (pendingNotifications.length > 0) {
+    const effectsToRun = [...pendingNotifications];
+    pendingNotifications.length = 0;
+    pendingRegistry.clear();
 
-    effectsToRun.forEach((effect) => {
+    for (const effect of effectsToRun) {
       effect();
-    });
+    }
   }
 }
 
 /**
- * Efficiently removes an effect from all signals it was depending on
- * using bidirectional references
+ * Remove an effect from all its dependencies
  */
-function cleanupEffect(effect: EffectFn) {
-  // Get the signals this effect depends on
+function unsubscribeDependencies(effect: EffectFn) {
   const deps = effectDependencies.get(effect);
-
   if (deps) {
-    // Remove the effect from each signal's dependencies
-    deps.forEach((signal) => {
+    for (const signal of deps) {
       signal._deps.delete(effect);
-    });
-
-    // Clear the dependencies
+    }
     deps.clear();
   }
 }
