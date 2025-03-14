@@ -168,7 +168,6 @@ export function queueEffects(subscribers: Set<WeakRef<EffectFn>>): void {
 
   // Critical fix: Ensure effects run immediately when not batching
   if (getBatchDepth() === 0) {
-    // Changed from queueMicrotask to immediate execution for test compatibility
     flushEffects();
   }
 }
