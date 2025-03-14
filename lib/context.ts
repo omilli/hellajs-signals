@@ -9,6 +9,7 @@ import type {
   ReactiveContext,
   ReactiveState,
 } from "./types";
+import { untracked } from "./untracked";
 
 // Create a symbol for storing the default context
 const DEFAULT_CONTEXT_KEY = Symbol.for("reactiveContext");
@@ -56,24 +57,6 @@ export function withContext<T>(ctx: ReactiveContext, fn: () => T): T {
     return fn();
   } finally {
     currentContext = prevContext;
-  }
-}
-
-/**
- * Access a signal's value without creating a dependency
- */
-export function untracked<T>(fn: () => T): T {
-  const ctx = getCurrentContext();
-  const prevEffect = ctx.activeTracker;
-
-  // Mark as not tracking during execution
-  ctx.activeTracker = NOT_TRACKING;
-
-  try {
-    return fn();
-  } finally {
-    // Make sure we restore the previous state
-    ctx.activeTracker = prevEffect;
   }
 }
 
