@@ -1,6 +1,6 @@
 import { effect } from "./effect";
 import { signal } from "./signal";
-import type { ComputedFn, SignalValue } from "./types";
+import type { ComputedAccessor, ComputedFn, SignalValue } from "./types";
 
 /**
  * Creates a computed value that automatically updates when its dependencies change.
@@ -71,9 +71,9 @@ export function computed<T>(deriveFn: ComputedFn<T>): SignalValue<T> {
   });
 
   // For backward compatibility with earlier APIs
-  (accessor as any)._dispose = () => {
-    (accessor as any)._cleanup();
+  accessor._dispose = () => {
+    (accessor as ComputedAccessor<T>)._cleanup();
   };
 
-  return accessor as SignalValue<T>;
+  return accessor as ComputedAccessor<T>;
 }
