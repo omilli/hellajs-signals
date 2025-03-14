@@ -19,7 +19,22 @@ export interface Signal<T> {
   _deps: Set<WeakRef<EffectFn>>;
 }
 
-export type EffectFn = () => void;
+export interface EffectFn {
+  (): void;
+  _hasRun?: boolean;
+  _name?: string;
+  _priority?: number;
+}
+
+export interface EffectOptions {
+  name?: string; // For debugging and DevTools
+  scheduler?: (run: () => void) => void; // Custom scheduling
+  priority?: number; // Execution order (higher runs first)
+  once?: boolean; // Run once and dispose automatically
+  debounce?: number; // Wait time before executing
+  onError?: (error: Error) => void; // Custom error handling
+  onCleanup?: () => void; // Alternative cleanup registration
+}
 
 export type ComputedFn<T> = () => T;
 
@@ -33,4 +48,12 @@ export interface SignalOptions<T> {
   name?: string;
   validators?: Array<(value: T) => boolean>;
   onSet?: (newValue: unknown, oldValue: unknown) => void;
+}
+
+export interface ReactiveContext {
+  signal: <T>(initialValue: T, options?: SignalOptions<T>) => Signal<T>;
+  effect: (fn: EffectFn, options?: EffectOptions) => CleanupFunction;
+  computed: <T>(deriveFn: ComputedFn<T>) => SignalValue<T>;
+  batch: <T>(fn: () => T) => T;
+  untracked: <T>(fn: () => T) => T;
 }

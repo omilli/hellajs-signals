@@ -167,4 +167,59 @@ describe("effect", () => {
       expect(remainingDeps.length).toBe(0);
     });
   });
+
+  describe("options", () => {
+    // Add to the existing tests
+
+    test("should support name option", () => {
+      const namedEffect = effect(() => {}, { name: "testEffect" });
+      // Access internal property to verify name was set
+      expect((namedEffect as any)._name).toBe("testEffect");
+    });
+
+    test("should support custom error handling", () => {
+      const errorHandler = mock();
+      const testError = new Error("Test error");
+
+      effect(
+        () => {
+          throw testError;
+        },
+        {
+          onError: errorHandler,
+        }
+      );
+
+      expect(errorHandler).toHaveBeenCalledWith(testError);
+    });
+
+    test("should support once option", () => {
+      const count = signal(0);
+      const mockFn = mock();
+
+      effect(
+        () => {
+          count();
+          mockFn();
+        },
+        { once: true }
+      );
+
+      expect(mockFn).toHaveBeenCalledTimes(1);
+
+      count.set(1); // Should not trigger the effect again
+      expect(mockFn).toHaveBeenCalledTimes(1);
+    });
+
+    test("should call onCleanup when effect is disposed", () => {
+      const cleanupFn = mock();
+
+      const dispose = effect(() => {}, {
+        onCleanup: cleanupFn,
+      });
+
+      dispose();
+      expect(cleanupFn).toHaveBeenCalledTimes(1);
+    });
+  });
 });
