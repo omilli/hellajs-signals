@@ -70,13 +70,28 @@ export function effect(fn: EffectFn): CleanupFunction {
 /**
  * Schedule effects to run after current operations complete
  */
-export function queueEffects(effects: Set<EffectFn>): void {
-  effects.forEach((effect) => {
-    if (!pendingRegistry.has(effect)) {
-      pendingRegistry.add(effect);
-      pendingNotifications.push(effect);
+export function queueEffects(subscribers: Set<WeakRef<EffectFn>>): void {
+  // Clean up dead references while processing
+  const deadRefs = new Set<WeakRef<EffectFn>>();
+
+  for (const weakRef of subscribers) {
+    const effect = weakRef.deref();
+    if (effect) {
+      // Effect is alive, queue it
+      if (!pendingRegistry.has(effect)) {
+        pendingNotifications.push(effect);
+        pendingRegistry.add(effect);
+      }
+    } else {
+      // Effect is gone, mark for cleanup
+      deadRefs.add(weakRef);
     }
-  });
+  }
+
+  // Clean up dead references
+  for (const deadRef of deadRefs) {
+    subscribers.delete(deadRef);
+  }
 
   if (getBatchDepth() === 0) {
     flushEffects();
@@ -105,8 +120,16 @@ function unsubscribeDependencies(effect: EffectFn) {
   const deps = effectDependencies.get(effect);
   if (deps) {
     for (const signal of deps) {
-      signal._deps.delete(effect);
+      // Find and remove the WeakRef pointing to this effect
+      const subscribers = signal._deps;
+      for (const weakRef of subscribers) {
+        const subscribedEffect = weakRef.deref();
+        if (!subscribedEffect || subscribedEffect === effect) {
+          subscribers.delete(weakRef);
+        }
+      }
     }
     deps.clear();
+    effectDependencies.delete(effect);
   }
 }

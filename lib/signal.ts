@@ -33,7 +33,7 @@ export function signal<T>(
   // Use a WeakSet for subscribers that may be garbage collected
   const state = {
     value: initialValue,
-    subscribers: new Set<EffectFn>(),
+    subscribers: new Set<WeakRef<EffectFn>>(),
   };
 
   const createSignal = function () {
@@ -41,7 +41,7 @@ export function signal<T>(
     const activeEffect = getCurrentEffect();
     if (activeEffect) {
       // Add the active effect to this signal's subscribers
-      state.subscribers.add(activeEffect);
+      state.subscribers.add(new WeakRef(activeEffect));
 
       // Use weak references for bidirectional tracking when possible
       const effectDeps = effectDependencies.get(activeEffect) || new Set();
@@ -65,7 +65,7 @@ export function signal<T>(
 
     // Subscribers list
     _deps: {
-      get: () => state.subscribers, // Set of effects
+      get: () => state.subscribers as Set<WeakRef<EffectFn>>, // Set of effects
     },
 
     // Public API for Non-Atomic updates

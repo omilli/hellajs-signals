@@ -10,7 +10,7 @@ export interface Signal<T> {
   set: SignalSetter<T>;
   update: (updater: (value: T) => T) => void;
   _value: T;
-  _deps: Set<EffectFn>;
+  _deps: Set<WeakRef<EffectFn>>;
 }
 export type EffectFn = () => void;
 export type ComputedFn<T> = () => T;
