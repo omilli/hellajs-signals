@@ -1,23 +1,15 @@
 import { getBatchDepth } from "./batch";
 import type { CleanupFunction, EffectFn, EffectOptions } from "./types";
-import { getCurrentContext } from "./context";
-
-// Using a symbolic sentinel instead of null
-const NOT_TRACKING = Symbol("not-tracking");
+import { getCurrentContext, NOT_TRACKING } from "./context";
 
 // Context accessor functions to replace global state
-export const getCurrentEffect = (): EffectFn | null => {
-  const ctx = getCurrentContext();
-  return ctx.activeTracker === NOT_TRACKING ||
-    typeof ctx.activeTracker === "symbol"
-    ? null
-    : (ctx.activeTracker as EffectFn);
-};
-
 export const setCurrentEffect = (value: EffectFn | null): void => {
   const ctx = getCurrentContext();
   ctx.activeTracker = value === null ? NOT_TRACKING : value;
 };
+
+// Re-export the getCurrentEffect from context for backward compatibility
+export { getCurrentEffect } from "./context";
 
 // For backward compatibility and test compatibility
 // We maintain this alongside context-specific storage

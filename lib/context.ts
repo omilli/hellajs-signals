@@ -12,7 +12,8 @@ import type {
 
 // Create a symbol for storing the default context
 const DEFAULT_CONTEXT_KEY = Symbol.for("reactiveContext");
-const NOT_TRACKING = Symbol.for("not-tracking");
+// Export the NOT_TRACKING symbol for other modules to use
+export const NOT_TRACKING = Symbol.for("not-tracking");
 
 // Track the current context
 let currentContext: ReactiveContext | null = null;
@@ -24,6 +25,18 @@ const contextStates = new WeakMap<ReactiveContext, ReactiveState>();
 export function getCurrentContext(): ReactiveState {
   const ctx = currentContext || getDefaultContext();
   return contextStates.get(ctx)!;
+}
+
+/**
+ * Gets the currently active effect if there is one
+ * @returns The current effect function or null if not in an effect
+ */
+export function getCurrentEffect(): EffectFn | null {
+  const ctx = getCurrentContext();
+  return ctx.activeTracker === NOT_TRACKING ||
+    typeof ctx.activeTracker === "symbol"
+    ? null
+    : (ctx.activeTracker as EffectFn);
 }
 
 /**
@@ -43,6 +56,24 @@ export function withContext<T>(ctx: ReactiveContext, fn: () => T): T {
     return fn();
   } finally {
     currentContext = prevContext;
+  }
+}
+
+/**
+ * Access a signal's value without creating a dependency
+ */
+export function executeUntracked<T>(fn: () => T): T {
+  const ctx = getCurrentContext();
+  const prevEffect = ctx.activeTracker;
+
+  // Mark as not tracking during execution
+  ctx.activeTracker = NOT_TRACKING;
+
+  try {
+    return fn();
+  } finally {
+    // Make sure we restore the previous state
+    ctx.activeTracker = prevEffect;
   }
 }
 
@@ -124,9 +155,8 @@ export function createContext(): ReactiveContext {
 
     untracked: <T>(fn: () => T): T => {
       return withContext(context, () => {
-        // Lazy-load to avoid circular dependencies
-        const { untracked } = require("./untracked");
-        return untracked(fn);
+        // Use direct implementation instead of lazy-loading
+        return executeUntracked(fn);
       });
     },
   };

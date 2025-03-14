@@ -1,4 +1,4 @@
-import { getCurrentContext } from "./context";
+import { getCurrentContext, getCurrentEffect } from "./context";
 import { queueEffects, effectDependencies } from "./effect";
 import type { EffectFn, Signal, SignalOptions } from "./types";
 
@@ -127,13 +127,4 @@ export function signal<T>(
 
   // Return the function with attached methods
   return createSignal;
-}
-
-// Helper function to get current effect (avoids circular dependencies)
-function getCurrentEffect(): EffectFn | null {
-  const ctx = getCurrentContext();
-  return ctx.activeTracker === Symbol.for("not-tracking") ||
-    typeof ctx.activeTracker === "symbol"
-    ? null
-    : (ctx.activeTracker as EffectFn);
 }
