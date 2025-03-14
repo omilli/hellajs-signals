@@ -3,6 +3,7 @@ import { contextIsolation } from "./context/isolation";
 import { contextReactivity } from "./context/reactivity";
 import { contextMemory } from "./context/memory";
 import { contextUtilities } from "./context/utilities";
+import { contextUntracked } from "./context/untracked";
 
 // Add context to lib/index.ts export
 // export * from "./context";
@@ -12,4 +13,5 @@ describe("reactive context", () => {
   contextReactivity();
   contextMemory();
   contextUtilities();
+  contextUntracked();
 });

@@ -62,7 +62,7 @@ export function withContext<T>(ctx: ReactiveContext, fn: () => T): T {
 /**
  * Access a signal's value without creating a dependency
  */
-export function executeUntracked<T>(fn: () => T): T {
+export function untracked<T>(fn: () => T): T {
   const ctx = getCurrentContext();
   const prevEffect = ctx.activeTracker;
 
@@ -156,7 +156,7 @@ export function createContext(): ReactiveContext {
     untracked: <T>(fn: () => T): T => {
       return withContext(context, () => {
         // Use direct implementation instead of lazy-loading
-        return executeUntracked(fn);
+        return untracked(fn);
       });
     },
   };
