@@ -1,0 +1,19 @@
+{
+  "name": "bun",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "vite build"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "bun-plugin-isolated-decl": "^0.1.9",
+    "oxc-transform": "^0.58.1",
+    "vite": "^6.2.2",
+    "vite-plugin-dts": "^4.5.3"
+  },
+  "peerDependencies": {
+    "typescript": "^5.8.2"
+  }
+}
