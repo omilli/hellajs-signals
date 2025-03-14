@@ -58,8 +58,10 @@ export function computed<T>(deriveFn: ComputedFn<T>): SignalValue<T> {
     return backingSignal();
   };
 
+  const computedAccessor = accessor as ComputedAccessor<T>;
+
   // Add metadata and methods to the accessor function
-  Object.defineProperties(accessor, {
+  Object.defineProperties(computedAccessor, {
     _isComputed: { value: true },
     _cleanup: {
       value: () => {
@@ -68,12 +70,12 @@ export function computed<T>(deriveFn: ComputedFn<T>): SignalValue<T> {
         cleanup();
       },
     },
-  });
+  }) as ComputedAccessor<T>;
 
   // For backward compatibility with earlier APIs
-  accessor._dispose = () => {
-    (accessor as ComputedAccessor<T>)._cleanup();
+  computedAccessor._dispose = () => {
+    computedAccessor._cleanup();
   };
 
-  return accessor as ComputedAccessor<T>;
+  return computedAccessor;
 }

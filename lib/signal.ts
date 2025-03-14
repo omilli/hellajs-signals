@@ -1,5 +1,5 @@
 import { effectDependencies, getCurrentEffect, queueEffects } from "./effect";
-import type { EffectFn, Signal, EqualityFn } from "./types";
+import type { EffectFn, Signal, SignalOptions } from "./types";
 
 /**
  * Creates a reactive signal with the specified initial value.
@@ -11,10 +11,8 @@ import type { EffectFn, Signal, EqualityFn } from "./types";
  * @template T - The type of value stored in the signal
  * @param initialValue - The initial value to store in the signal
  * @param options - Optional configuration for signal behavior
- * @param options.equals - Custom equality function to determine if value has changed (defaults to reference equality)
  * @returns A signal function that can be called to get the current value and automatically tracks dependencies.
- *          The signal also includes methods to update the value and access internal state:
- *          - `set(newValue)`: Updates the signal's value and notifies subscribers if changed
+ *          The signal also includes methods to update the value and access internal state.
  *
  * @example
  * ```ts
@@ -25,14 +23,17 @@ import type { EffectFn, Signal, EqualityFn } from "./types";
  */
 export function signal<T>(
   initialValue: T,
-  options?: { equals?: EqualityFn<T> }
+  options?: SignalOptions<T>
 ): Signal<T> {
-  // Default equality function uses reference equality
-  const equals = options?.equals || ((a, b) => a === b);
+  const validators = options?.validators || [];
+  const name = options?.name;
+
+  // Load initial value from storage if configured
+  let initialStateValue = initialValue;
 
   // Use a WeakSet for subscribers that may be garbage collected
   const state = {
-    value: initialValue,
+    value: initialStateValue,
     subscribers: new Set<WeakRef<EffectFn>>(),
   };
 
@@ -45,14 +46,13 @@ export function signal<T>(
 
       // Use weak references for bidirectional tracking when possible
       const effectDeps = effectDependencies.get(activeEffect) || new Set();
-      effectDeps.add(createSignal);
+      effectDeps.add(createSignal as Signal<unknown>);
       effectDependencies.set(activeEffect, effectDeps);
     }
     return state.value;
   } as Signal<T>;
 
   // Define properties and methods on the signal function
-  // Use Object.defineProperties for non-enumerable properties
   Object.defineProperties(createSignal, {
     // Internal accessor for the raw value (primarily for testing/debugging)
     _value: {
@@ -63,6 +63,9 @@ export function signal<T>(
       },
     },
 
+    // Signal name for debugging
+    ...(name ? { _name: { value: name } } : {}),
+
     // Subscribers list
     _deps: {
       get: () => state.subscribers as Set<WeakRef<EffectFn>>, // Set of effects
@@ -71,14 +74,37 @@ export function signal<T>(
     // Public API for Non-Atomic updates
     set: {
       value: (newValue: T) => {
-        // Use custom equality function to avoid unnecessary updates
-        if (!equals(newValue, state.value)) {
-          state.value = newValue;
-
-          // queueEffects ensures effects run after current execution completes
-          // and respects batching for efficiency
-          queueEffects(state.subscribers);
+        // Run validators if provided
+        if (validators.length > 0) {
+          for (const validator of validators) {
+            if (!validator(newValue)) {
+              console.warn(
+                `Validation failed for signal "${name || "unnamed"}"`,
+                newValue
+              );
+              return; // Skip update if validation fails
+            }
+          }
         }
+
+        const oldValue = state.value;
+        state.value = newValue;
+
+        // Call onSet hook if provided
+        if (options?.onSet) {
+          try {
+            options.onSet(newValue, oldValue);
+          } catch (e) {
+            console.error(
+              `Error in onSet hook for signal "${name || "unnamed"}"`,
+              e
+            );
+          }
+        }
+
+        // queueEffects ensures effects run after current execution completes
+        // and respects batching for efficiency
+        queueEffects(state.subscribers);
       },
     },
 

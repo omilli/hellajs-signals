@@ -18,7 +18,10 @@ export const setCurrentEffect = (value: EffectFn | null): void => {
 };
 
 // Dependency registry with more descriptive name
-export const effectDependencies: Map<EffectFn, Set<Signal<any>>> = new Map();
+export const effectDependencies: Map<
+  EffectFn,
+  Set<{ (): unknown; _deps: Set<WeakRef<EffectFn>> }>
+> = new Map();
 
 /**
  * Creates an effect that runs when its dependencies change
