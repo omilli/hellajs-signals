@@ -1,23 +1,26 @@
 import { getBatchDepth } from "./batch";
 import type { CleanupFunction, EffectFn, EffectOptions } from "./types";
+import { getCurrentContext } from "./context";
 
 // Using a symbolic sentinel instead of null
 const NOT_TRACKING = Symbol("not-tracking");
-let activeTracker: EffectFn | typeof NOT_TRACKING = NOT_TRACKING;
 
-// Use a more efficient notification queue
-const pendingNotifications: EffectFn[] = [];
-const pendingRegistry = new Set<EffectFn>();
-const executionContext: EffectFn[] = [];
-
-export const getCurrentEffect = (): EffectFn | null =>
-  activeTracker === NOT_TRACKING ? null : activeTracker;
-
-export const setCurrentEffect = (value: EffectFn | null): void => {
-  activeTracker = value === null ? NOT_TRACKING : value;
+// Context accessor functions to replace global state
+export const getCurrentEffect = (): EffectFn | null => {
+  const ctx = getCurrentContext();
+  return ctx.activeTracker === NOT_TRACKING ||
+    typeof ctx.activeTracker === "symbol"
+    ? null
+    : (ctx.activeTracker as EffectFn);
 };
 
-// Dependency registry with more descriptive name
+export const setCurrentEffect = (value: EffectFn | null): void => {
+  const ctx = getCurrentContext();
+  ctx.activeTracker = value === null ? NOT_TRACKING : value;
+};
+
+// For backward compatibility and test compatibility
+// We maintain this alongside context-specific storage
 export const effectDependencies: Map<
   EffectFn,
   Set<{ (): unknown; _deps: Set<WeakRef<EffectFn>> }>
@@ -27,6 +30,7 @@ export const effectDependencies: Map<
  * Creates an effect that runs when its dependencies change
  */
 export function effect(fn: EffectFn, options?: EffectOptions): CleanupFunction {
+  const ctx = getCurrentContext();
   const { name, scheduler, once, debounce, onError, onCleanup } = options || {};
 
   // Store user's cleanup function if provided
@@ -35,9 +39,9 @@ export function effect(fn: EffectFn, options?: EffectOptions): CleanupFunction {
   // Create an observer function
   const observer = () => {
     // Prevent infinite recursion with execution context tracking
-    if (executionContext.includes(observer)) {
+    if (ctx.executionContext.includes(observer)) {
       console.warn("Circular dependency detected in effect", {
-        runningEffectsSize: executionContext.length,
+        runningEffectsSize: ctx.executionContext.length,
         effectId: name || observer.toString().substring(0, 50),
       });
       return;
@@ -52,9 +56,9 @@ export function effect(fn: EffectFn, options?: EffectOptions): CleanupFunction {
     unsubscribeDependencies(observer);
 
     // Establish tracking context
-    const previousTracker = activeTracker;
-    activeTracker = observer;
-    executionContext.push(observer);
+    const previousTracker = ctx.activeTracker;
+    ctx.activeTracker = observer;
+    ctx.executionContext.push(observer);
 
     try {
       fn();
@@ -69,8 +73,8 @@ export function effect(fn: EffectFn, options?: EffectOptions): CleanupFunction {
         console.error("Error in effect:", error);
       }
     } finally {
-      executionContext.pop();
-      activeTracker = previousTracker;
+      ctx.executionContext.pop();
+      ctx.activeTracker = previousTracker;
     }
   };
 
@@ -81,8 +85,9 @@ export function effect(fn: EffectFn, options?: EffectOptions): CleanupFunction {
     _priority: { value: options?.priority },
   });
 
-  // Create dependency tracking set
-  effectDependencies.set(observer, new Set());
+  // Create dependency tracking set - both in context and global store
+  ctx.effectDependencies.set(observer, new Set());
+  effectDependencies.set(observer, new Set()); // For backward compatibility
 
   // Handle scheduling of the initial effect
   const executeEffect = () => {
@@ -106,8 +111,9 @@ export function effect(fn: EffectFn, options?: EffectOptions): CleanupFunction {
     }
 
     unsubscribeDependencies(observer);
-    pendingRegistry.delete(observer);
-    effectDependencies.delete(observer);
+    ctx.pendingRegistry.delete(observer);
+    ctx.effectDependencies.delete(observer);
+    effectDependencies.delete(observer); // Clean up the global store too
   };
 
   Object.defineProperties(disposeEffect, {
@@ -144,6 +150,8 @@ export function effect(fn: EffectFn, options?: EffectOptions): CleanupFunction {
  * Schedule effects to run after current operations complete
  */
 export function queueEffects(subscribers: Set<WeakRef<EffectFn>>): void {
+  const ctx = getCurrentContext();
+
   // Clean up dead references while processing
   const deadRefs = new Set<WeakRef<EffectFn>>();
 
@@ -151,9 +159,9 @@ export function queueEffects(subscribers: Set<WeakRef<EffectFn>>): void {
     const effect = weakRef.deref();
     if (effect) {
       // Effect is alive, queue it
-      if (!pendingRegistry.has(effect)) {
-        pendingNotifications.push(effect);
-        pendingRegistry.add(effect);
+      if (!ctx.pendingRegistry.has(effect)) {
+        ctx.pendingNotifications.push(effect);
+        ctx.pendingRegistry.add(effect);
       }
     } else {
       // Effect is gone, mark for cleanup
@@ -176,16 +184,18 @@ export function queueEffects(subscribers: Set<WeakRef<EffectFn>>): void {
  * Process all queued effects
  */
 export function flushEffects(): void {
-  if (pendingNotifications.length > 0) {
+  const ctx = getCurrentContext();
+
+  if (ctx.pendingNotifications.length > 0) {
     // Sort by priority if available
-    const effectsToRun = [...pendingNotifications].sort((a, b) => {
+    const effectsToRun = [...ctx.pendingNotifications].sort((a, b) => {
       const priorityA = (a as any)._priority || 0;
       const priorityB = (b as any)._priority || 0;
       return priorityB - priorityA; // Higher priority runs first
     });
 
-    pendingNotifications.length = 0;
-    pendingRegistry.clear();
+    ctx.pendingNotifications.length = 0;
+    ctx.pendingRegistry.clear();
 
     for (const effect of effectsToRun) {
       effect();
@@ -197,10 +207,18 @@ export function flushEffects(): void {
  * Remove an effect from all its dependencies
  */
 function unsubscribeDependencies(effect: EffectFn) {
-  const deps = effectDependencies.get(effect);
-  if (deps) {
-    for (const signal of deps) {
-      // Find and remove the WeakRef pointing to this effect
+  const ctx = getCurrentContext();
+
+  // Get dependencies from both context-specific and global storage
+  const ctxDeps = ctx.effectDependencies.get(effect);
+  const globalDeps = effectDependencies.get(effect);
+
+  // Thorough cleanup of both dependency sets
+  const allDeps = new Set([...(ctxDeps || []), ...(globalDeps || [])]);
+
+  // For each signal this effect depends on, remove the effect from its subscribers
+  for (const signal of allDeps) {
+    if (signal && signal._deps) {
       const subscribers = signal._deps;
       for (const weakRef of subscribers) {
         const subscribedEffect = weakRef.deref();
@@ -209,7 +227,16 @@ function unsubscribeDependencies(effect: EffectFn) {
         }
       }
     }
-    deps.clear();
+  }
+
+  // Clear and delete from both context and global tracking
+  if (ctxDeps) {
+    ctxDeps.clear();
+    ctx.effectDependencies.delete(effect);
+  }
+
+  if (globalDeps) {
+    globalDeps.clear();
     effectDependencies.delete(effect);
   }
 }

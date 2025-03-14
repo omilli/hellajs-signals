@@ -1,4 +1,5 @@
-import { effectDependencies, getCurrentEffect, queueEffects } from "./effect";
+import { getCurrentContext } from "./context";
+import { queueEffects, effectDependencies } from "./effect";
 import type { EffectFn, Signal, SignalOptions } from "./types";
 
 /**
@@ -25,6 +26,7 @@ export function signal<T>(
   initialValue: T,
   options?: SignalOptions<T>
 ): Signal<T> {
+  const ctx = getCurrentContext();
   const validators = options?.validators || [];
   const name = options?.name;
 
@@ -44,10 +46,16 @@ export function signal<T>(
       // Add the active effect to this signal's subscribers
       state.subscribers.add(new WeakRef(activeEffect));
 
-      // Use weak references for bidirectional tracking when possible
-      const effectDeps = effectDependencies.get(activeEffect) || new Set();
+      // Use bidirectional tracking: effects know their dependencies and signals know their subscribers
+      // Track in context-specific storage
+      const effectDeps = ctx.effectDependencies.get(activeEffect) || new Set();
       effectDeps.add(createSignal as Signal<unknown>);
-      effectDependencies.set(activeEffect, effectDeps);
+      ctx.effectDependencies.set(activeEffect, effectDeps);
+
+      // Also track in global storage for backward compatibility
+      const globalDeps = effectDependencies.get(activeEffect) || new Set();
+      globalDeps.add(createSignal as Signal<unknown>);
+      effectDependencies.set(activeEffect, globalDeps);
     }
     return state.value;
   } as Signal<T>;
@@ -119,4 +127,13 @@ export function signal<T>(
 
   // Return the function with attached methods
   return createSignal;
+}
+
+// Helper function to get current effect (avoids circular dependencies)
+function getCurrentEffect(): EffectFn | null {
+  const ctx = getCurrentContext();
+  return ctx.activeTracker === Symbol.for("not-tracking") ||
+    typeof ctx.activeTracker === "symbol"
+    ? null
+    : (ctx.activeTracker as EffectFn);
 }

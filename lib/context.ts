@@ -1,8 +1,3 @@
-import {
-  signal as createSignal,
-  effect as createEffect,
-  computed as createComputed,
-} from "./index";
 import type {
   Signal,
   EffectFn,
@@ -12,18 +7,57 @@ import type {
   SignalValue,
   CleanupFunction,
   ReactiveContext,
+  ReactiveState,
 } from "./types";
 
 // Create a symbol for storing the default context
-const DEFAULT_CONTEXT_KEY = Symbol.for("reactiveCcontext");
+const DEFAULT_CONTEXT_KEY = Symbol.for("reactiveContext");
+const NOT_TRACKING = Symbol.for("not-tracking");
+
+// Track the current context
+let currentContext: ReactiveContext | null = null;
+const contextStates = new WeakMap<ReactiveContext, ReactiveState>();
+
+/**
+ * Get the currently active context, or default if none is set
+ */
+export function getCurrentContext(): ReactiveState {
+  const ctx = currentContext || getDefaultContext();
+  return contextStates.get(ctx)!;
+}
+
+/**
+ * Set the currently active context
+ */
+export function setCurrentContext(ctx: ReactiveContext | null): void {
+  currentContext = ctx;
+}
+
+/**
+ * Run a function with a specific context
+ */
+export function withContext<T>(ctx: ReactiveContext, fn: () => T): T {
+  const prevContext = currentContext;
+  currentContext = ctx;
+  try {
+    return fn();
+  } finally {
+    currentContext = prevContext;
+  }
+}
 
 /**
  * Creates an isolated reactive context
  */
 export function createContext(): ReactiveContext {
-  // Store context-specific state
-  const contextState = {
+  // Create initial reactive state for this context
+  const reactiveState: ReactiveState = {
     id: Math.random().toString(36).slice(2),
+    activeTracker: NOT_TRACKING,
+    pendingNotifications: [],
+    pendingRegistry: new Set<EffectFn>(),
+    executionContext: [],
+    effectDependencies: new Map(),
     effects: new Set<CleanupFunction>(),
     signals: new WeakSet(),
   };
@@ -31,38 +65,73 @@ export function createContext(): ReactiveContext {
   // Create context-specific versions of API functions
   const context: ReactiveContext = {
     signal: <T>(initialValue: T, options?: SignalOptions<T>): Signal<T> => {
-      const s = createSignal(initialValue, options);
-      contextState.signals.add(s);
-      return s;
+      return withContext(context, () => {
+        // Lazy-load to avoid circular dependencies
+        const { signal } = require("./signal");
+        const s = signal(initialValue, options);
+        reactiveState.signals.add(s);
+        return s;
+      });
     },
 
     effect: (fn: EffectFn, options?: EffectOptions): CleanupFunction => {
-      const cleanup = createEffect(fn, options);
+      return withContext(context, () => {
+        // Lazy-load to avoid circular dependencies
+        const { effect } = require("./effect");
+        const cleanup = effect(fn, options);
 
-      // Track the effect for potential context disposal
-      contextState.effects.add(cleanup);
+        // Track the effect for potential context disposal
+        reactiveState.effects.add(cleanup);
 
-      // Wrap the cleanup function to remove from tracked effects
-      return () => {
-        contextState.effects.delete(cleanup);
-        return cleanup();
-      };
+        // Wrap the cleanup function to remove from tracked effects when called
+        const originalCleanup = cleanup;
+        const wrappedCleanup = () => {
+          reactiveState.effects.delete(originalCleanup);
+          return originalCleanup();
+        };
+
+        // Copy properties from original cleanup
+        Object.getOwnPropertyNames(originalCleanup).forEach((prop) => {
+          if (prop !== "name" && prop !== "length") {
+            Object.defineProperty(
+              wrappedCleanup,
+              prop,
+              Object.getOwnPropertyDescriptor(originalCleanup, prop)!
+            );
+          }
+        });
+
+        return wrappedCleanup;
+      });
     },
 
     computed: <T>(deriveFn: ComputedFn<T>): SignalValue<T> => {
-      return createComputed(deriveFn);
+      return withContext(context, () => {
+        // Lazy-load to avoid circular dependencies
+        const { computed } = require("./computed");
+        return computed(deriveFn);
+      });
     },
 
     batch: <T>(fn: () => T): T => {
-      const { batch } = require("./batch");
-      return batch(fn);
+      return withContext(context, () => {
+        // Lazy-load to avoid circular dependencies
+        const { batch } = require("./batch");
+        return batch(fn);
+      });
     },
 
     untracked: <T>(fn: () => T): T => {
-      const { untracked } = require("./untracked");
-      return untracked(fn);
+      return withContext(context, () => {
+        // Lazy-load to avoid circular dependencies
+        const { untracked } = require("./untracked");
+        return untracked(fn);
+      });
     },
   };
+
+  // Store the reactive state for this context
+  contextStates.set(context, reactiveState);
 
   return context;
 }

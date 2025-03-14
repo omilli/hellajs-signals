@@ -57,3 +57,15 @@ export interface ReactiveContext {
   batch: <T>(fn: () => T) => T;
   untracked: <T>(fn: () => T) => T;
 }
+
+// New interface to represent reactive state for a context
+export interface ReactiveState {
+  id: string;
+  activeTracker: EffectFn | symbol;
+  pendingNotifications: EffectFn[];
+  pendingRegistry: Set<EffectFn>;
+  executionContext: EffectFn[];
+  effectDependencies: Map<EffectFn, Set<any>>;
+  effects: Set<CleanupFunction>;
+  signals: WeakSet<any>;
+}
