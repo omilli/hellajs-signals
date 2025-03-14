@@ -68,4 +68,5 @@ export interface ReactiveState {
   effectDependencies: Map<EffectFn, Set<any>>;
   effects: Set<CleanupFunction>;
   signals: WeakSet<any>;
+  batchDepth: number; // Add batchDepth to track batching state per context
 }

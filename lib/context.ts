@@ -60,6 +60,7 @@ export function createContext(): ReactiveContext {
     effectDependencies: new Map(),
     effects: new Set<CleanupFunction>(),
     signals: new WeakSet(),
+    batchDepth: 0, // Initialize batchDepth to 0
   };
 
   // Create context-specific versions of API functions
