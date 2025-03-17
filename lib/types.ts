@@ -15,7 +15,6 @@ export interface Signal<T> {
   (): T;
   set: SignalSetter<T>;
   update: (updater: (value: T) => T) => void;
-  _value: T;
   _deps: Set<WeakRef<EffectFn>>;
 }
 
@@ -74,36 +73,4 @@ export interface ReactiveContextDependencies {
   computed: <T>(deriveFn: ComputedFn<T>) => SignalValue<T>;
   batch: <T>(fn: () => T) => T;
   untracked: <T>(fn: () => T) => T;
-}
-
-/**
- * Scheduling priority levels
- * @internal
- */
-export enum SchedulerPriority {
-  High = 3, // For critical UI updates
-  Normal = 2, // Default priority
-  Low = 1, // Background tasks
-  Idle = 0, // Only run when nothing else is pending
-}
-
-/**
- * Different scheduling strategies available
- * @internal
- */
-export enum SchedulerMode {
-  Sync, // Run immediately (synchronously)
-  Microtask, // Use queueMicrotask (after current task, before next task)
-  Task, // Use setTimeout (after other microtasks, in next task)
-  Animation, // Use requestAnimationFrame (before next paint)
-  Idle, // Use requestIdleCallback (when browser is idle)
-}
-
-/**
- * Configuration for the scheduler
- * @internal
- */
-export interface SchedulerConfig {
-  defaultMode: SchedulerMode;
-  batchedUpdates: boolean; // Whether to automatically batch updates
 }
