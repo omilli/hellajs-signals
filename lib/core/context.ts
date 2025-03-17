@@ -3,22 +3,25 @@ import { effect } from "./effect";
 import { computed } from "./computed";
 import { batch } from "./batch";
 import { untracked } from "./untracked";
-import { createReactiveContext } from "../context";
+import { registerContextFactory } from "../context";
+import type { ReactiveContext } from "../types";
+
+// Import factory directly to avoid going through index
+import { createReactiveContext } from "../context/factory";
 
 /**
  * Creates an isolated reactive context with its own state and reactivity
- *
- * @returns A reactive context object with API methods
  */
-export function createContext(): ReturnType<typeof createReactiveContext> {
+export function createContext(): ReactiveContext {
   // Create context with all dependencies injected
-  const context = createReactiveContext({
+  return createReactiveContext({
     signal,
     effect,
     computed,
     batch,
     untracked,
   });
-
-  return context;
 }
+
+// Register the context factory with the bridge
+registerContextFactory(() => createContext());

@@ -1,11 +1,6 @@
-import { createReactiveState, withState } from "../utils/state";
+import { withState } from "../utils";
 import type { ReactiveContext, ReactiveState } from "../types";
-import { signal } from "../core/signal";
-import { effect } from "../core/effect";
-import { computed } from "../core/computed";
-import { batch } from "../core/batch";
-import { untracked } from "../core/untracked";
-import { createReactiveContext } from "./factory";
+import { createDefaultContext } from "./bridge";
 
 // Track context states using WeakMap for proper garbage collection
 const contextStates = new WeakMap<ReactiveContext, ReactiveState>();
@@ -64,8 +59,8 @@ export function getDefaultContext(): ReactiveContext {
 
   // Create default context if it doesn't exist
   if (!globalObj[DEFAULT_CONTEXT_KEY]) {
-    // Inject dependencies when creating the context
-    const context = createContextInstance();
+    // Use bridge to create context, avoiding circular import
+    const context = createDefaultContext();
     globalObj[DEFAULT_CONTEXT_KEY] = context;
   }
 
@@ -80,25 +75,6 @@ export function registerContextState(
   state: ReactiveState
 ): void {
   contextStates.set(context, state);
-}
-
-/**
- * Creates a context instance with internal state
- */
-function createContextInstance(): ReactiveContext {
-  // Create reactive state for this context
-  const state = createReactiveState("default");
-
-  // Register the state for this context
-  registerContextState({} as ReactiveContext, state);
-
-  return createReactiveContext({
-    signal,
-    effect,
-    computed,
-    batch,
-    untracked,
-  });
 }
 
 /**

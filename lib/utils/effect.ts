@@ -31,36 +31,6 @@ export function scheduleEffects(
 }
 
 /**
- * Execute all pending effects
- */
-export function flushPendingEffects(state: ReactiveState): void {
-  if (state.pendingNotifications.length === 0) return;
-
-  const effectsToRun = [...state.pendingNotifications];
-
-  // Clear pending queue before running effects to prevent circular updates
-  state.pendingNotifications.length = 0;
-  state.pendingRegistry.clear();
-
-  for (const effect of effectsToRun) {
-    // Skip disposed effects
-    if ((effect as any)._disposed) continue;
-
-    // Execute the effect with proper error boundaries
-    runEffect(state, effect);
-  }
-}
-
-/**
- * Immediately flush any pending effects for a state
- */
-export function flushEffectsSync(state: ReactiveState): void {
-  if (state.pendingNotifications.length > 0) {
-    flushPendingEffects(state);
-  }
-}
-
-/**
  * Run an effect with proper error handling and context tracking
  */
 function runEffect(state: ReactiveState, effect: EffectFn): void {
@@ -153,6 +123,36 @@ export function flushEffects(state: ReactiveState): void {
       if ((effect as any)._disposed) continue;
       effect();
     }
+  }
+}
+
+/**
+ * Execute all pending effects
+ */
+export function flushPendingEffects(state: ReactiveState): void {
+  if (state.pendingNotifications.length === 0) return;
+
+  const effectsToRun = [...state.pendingNotifications];
+
+  // Clear pending queue before running effects to prevent circular updates
+  state.pendingNotifications.length = 0;
+  state.pendingRegistry.clear();
+
+  for (const effect of effectsToRun) {
+    // Skip disposed effects
+    if ((effect as any)._disposed) continue;
+
+    // Execute the effect with proper error boundaries
+    runEffect(state, effect);
+  }
+}
+
+/**
+ * Immediately flush any pending effects for a state
+ */
+export function flushEffectsSync(state: ReactiveState): void {
+  if (state.pendingNotifications.length > 0) {
+    flushPendingEffects(state);
   }
 }
 
