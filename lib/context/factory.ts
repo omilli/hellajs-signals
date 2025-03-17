@@ -3,10 +3,10 @@ import { registerContextState, withContext } from "./utils";
 import type {
   CleanupFunction,
   ComputedFn,
+  ComputedOptions,
   EffectFn,
   EffectOptions,
   ReactiveContext,
-  ReactiveContextDependencies,
   Signal,
   SignalOptions,
   SignalValue,
@@ -23,7 +23,7 @@ import type {
  * @returns A reactive context object with API methods
  */
 export function createReactiveContext(
-  dependencies: ReactiveContextDependencies
+  dependencies: ReactiveContext
 ): ReactiveContext {
   // Create a unique ID for this context
   const id = `ctx_${Math.random().toString(36).slice(2, 10)}`;
@@ -77,9 +77,12 @@ export function createReactiveContext(
       });
     },
 
-    computed: <T>(deriveFn: ComputedFn<T>): SignalValue<T> => {
+    computed: <T>(
+      deriveFn: ComputedFn<T>,
+      options?: ComputedOptions<T>
+    ): SignalValue<T> => {
       return withContext(context, () => {
-        return dependencies.computed(deriveFn);
+        return dependencies.computed(deriveFn, options);
       });
     },
 

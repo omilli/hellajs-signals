@@ -18,6 +18,12 @@ export interface Signal<T> {
   _deps: Set<WeakRef<EffectFn>>;
 }
 
+export interface SignalOptions<T> {
+  name?: string;
+  validators?: Array<(value: T) => boolean>;
+  onSet?: (newValue: unknown, oldValue: unknown) => void;
+}
+
 export interface EffectFn {
   (): void;
   _hasRun?: boolean;
@@ -37,18 +43,22 @@ export interface EffectOptions {
 
 export type ComputedFn<T> = () => T;
 
-export type CleanupFunction = () => void;
-
-export interface SignalOptions<T> {
-  name?: string;
-  validators?: Array<(value: T) => boolean>;
-  onSet?: (newValue: unknown, oldValue: unknown) => void;
+export interface ComputedOptions<T> {
+  name?: string; // For debugging and DevTools
+  keepAlive?: boolean; // Whether to keep value computed when not accessed
+  onError?: (error: Error) => void; // Custom error handling
+  onComputed?: (value: T) => void; // Callback when value is computed
 }
+
+export type CleanupFunction = () => void;
 
 export interface ReactiveContext {
   signal: <T>(initialValue: T, options?: SignalOptions<T>) => Signal<T>;
   effect: (fn: EffectFn, options?: EffectOptions) => CleanupFunction;
-  computed: <T>(deriveFn: ComputedFn<T>) => SignalValue<T>;
+  computed: <T>(
+    deriveFn: ComputedFn<T>,
+    options?: ComputedOptions<T>
+  ) => SignalValue<T>;
   batch: <T>(fn: () => T) => T;
   untracked: <T>(fn: () => T) => T;
 }
@@ -64,13 +74,4 @@ export interface ReactiveState {
   effects: Set<CleanupFunction>;
   signals: WeakSet<any>;
   batchDepth: number; // Add batchDepth to track batching state per context
-}
-
-// Define the types for the injected dependencies
-export interface ReactiveContextDependencies {
-  signal: <T>(initialValue: T, options?: SignalOptions<T>) => Signal<T>;
-  effect: (fn: EffectFn, options?: EffectOptions) => CleanupFunction;
-  computed: <T>(deriveFn: ComputedFn<T>) => SignalValue<T>;
-  batch: <T>(fn: () => T) => T;
-  untracked: <T>(fn: () => T) => T;
 }
