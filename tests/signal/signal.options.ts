@@ -68,6 +68,7 @@ export const signalOptions = (count: Signal<number>) =>
     test("should support multiple validators", () => {
       // Must be positive and even
       const count = signal(2, {
+        name: "validate",
         validators: [(value) => value > 0, (value) => value % 2 === 0],
       });
 
@@ -87,6 +88,7 @@ export const signalOptions = (count: Signal<number>) =>
     test("should use update method with validators", () => {
       // Only allow even numbers
       const evenOnly = signal(0, {
+        name: "validateUpdate",
         validators: [(value) => value % 2 === 0],
       });
 

@@ -25,25 +25,25 @@ export const signalAdvanced = (count: Signal<number>) =>
 
     test("should handle signals created within effects", () => {
       const condition = signal(true);
-      let dynamicSignal: Signal<number>;
+      let dynamicSignal!: Signal<number>;
       const effectMock = mock();
 
       effect(() => {
         dynamicSignal = condition() ? signal(123) : dynamicSignal;
       });
 
-      expect(dynamicSignal!()).toBe(123);
+      expect(dynamicSignal()).toBe(123);
 
       // Create a dependent effect to test the dynamically created signal
       effect(() => {
-        if (dynamicSignal!) {
-          dynamicSignal!();
+        if (dynamicSignal) {
+          dynamicSignal();
           effectMock();
         }
       });
 
       expect(effectMock).toHaveBeenCalledTimes(1);
-      dynamicSignal!.set(456);
+      dynamicSignal.set(456);
       expect(effectMock).toHaveBeenCalledTimes(2);
     });
 
