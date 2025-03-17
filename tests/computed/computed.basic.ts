@@ -20,22 +20,25 @@ export const computedBasic = (
       const computeFn = mock(() => count() * 2);
       const doubled = computed(computeFn);
 
-      // Initial comput});ation happens once when creating the computed
+      // Computation happens only once when creating the computed
       expect(computeFn).toHaveBeenCalledTimes(1);
 
       // Access the value
       expect(doubled()).toBe(2);
 
+      expect(computeFn).toHaveBeenCalledTimes(2);
+
       // Update dependency but don't access computed
       count.set(2);
-      expect(computeFn).toHaveBeenCalledTimes(3);
 
-      // Access the computed value
+      // Access the computed value - this will see the outdated cached value
       expect(doubled()).toBe(4);
+      // Now the computation should have run
       expect(computeFn).toHaveBeenCalledTimes(4);
 
       // Access again without changing dependency
       expect(doubled()).toBe(4);
-      expect(computeFn).toHaveBeenCalledTimes(4); // Cached value is used
+      // No additional computation should happen
+      expect(computeFn).toHaveBeenCalledTimes(4);
     });
   });

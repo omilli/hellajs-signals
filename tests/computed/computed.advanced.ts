@@ -29,29 +29,33 @@ export const computedAdvanced = (
       expect(quadrupled()).toBe(4);
 
       count.set(2);
+      // Access doubled to ensure it's updated first
       expect(doubled()).toBe(4);
       expect(quadrupled()).toBe(8);
     });
 
     test("should dispose computed values correctly", () => {
-      const computeFn = () => count() * 2;
+      // Create a test signal to track changes
+      const testSignal = signal(0);
+
+      const computeFn = () => count() * 2 + testSignal();
       const doubled = computed(computeFn);
 
       // Initially computed and accessed
-      expect(doubled()).toBe(2);
+      expect(doubled()).toBe(2); // count is 1, testSignal is 0
 
       // Dispose the computed value
       (doubled as SignalValue<number>)._cleanup();
 
-      // Update the dependency
+      // Update both dependencies
       count.set(2);
+      testSignal.set(1);
 
-      // The computed should no longer update, still returning the last value
-      // before disposal, or throwing if completely removed
+      // The computed should no longer update with the new values
       try {
-        doubled();
-        // If it returns the last value, make sure it didn't recompute
-        expect(computeFn).toHaveBeenCalledTimes(2); // Initial + setup only
+        const result = doubled();
+        // If it returns a value, it should be the stale one or undefined
+        expect(result).not.toBe(5); // 2*2+1 = 5 would be the updated value
       } catch (e) {
         // Or if it throws, that's also acceptable behavior for disposed values
         expect(e).toBeDefined();

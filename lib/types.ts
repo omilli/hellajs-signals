@@ -37,6 +37,8 @@ export interface EffectOptions {
   priority?: number; // Execution order (higher runs first)
   once?: boolean; // Run once and dispose automatically
   debounce?: number; // Wait time before executing
+  immediate?: boolean; // Whether to run effect immediately (default: true)
+
   onError?: (error: Error) => void; // Custom error handling
   onCleanup?: () => void; // Alternative cleanup registration
 }
