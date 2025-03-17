@@ -98,27 +98,27 @@ export const computedOptions = (
 
       expect(errorHandler).toHaveBeenCalledTimes(3);
       expect(errorHandler).toHaveBeenCalledWith(testError);
+    });
 
-      test("should prevent errors from propagating when onError is provided", () => {
-        const errorCount = signal(0);
+    test("should prevent errors from propagating when onError is provided", () => {
+      const errorCount = signal(0);
 
-        const failing = computed(
-          () => {
-            if (errorCount() > 0) throw new Error("Should be caught");
-            return errorCount();
-          },
-          { onError: () => {} }
-        );
+      const failing = computed(
+        () => {
+          if (errorCount() > 0) throw new Error("Should be caught");
+          return errorCount();
+        },
+        { onError: () => {} }
+      );
 
-        // Initial computation succeeds
-        expect(failing()).toBe(0);
+      // Initial computation succeeds
+      expect(failing()).toBe(0);
 
-        // Update to trigger error
-        errorCount.set(1);
+      // Update to trigger error
+      errorCount.set(1);
 
-        // Should not throw when accessed
-        expect(() => failing()).not.toThrow();
-      });
+      // Should not throw when accessed
+      expect(() => failing()).not.toThrow();
     });
 
     test("should call onComputed when value is computed", () => {
@@ -140,25 +140,25 @@ export const computedOptions = (
       // Should call onComputed with new value
       expect(onComputedMock).toHaveBeenCalledTimes(2);
       expect(onComputedMock).toHaveBeenCalledWith(4);
+    });
 
-      test("should call onComputed for keepAlive computed even when not accessed", () => {
-        const count = signal(0);
-        const onComputedMock = mock();
+    test("should call onComputed for keepAlive computed even when not accessed", () => {
+      const count = signal(0);
+      const onComputedMock = mock();
 
-        computed(() => count() * 2, {
-          keepAlive: true,
-          onComputed: onComputedMock,
-        });
-
-        // Initial computation
-        expect(onComputedMock).toHaveBeenCalledTimes(1);
-        expect(onComputedMock).toHaveBeenCalledWith(0);
-
-        // Update should trigger computation and callback
-        count.set(5);
-        expect(onComputedMock).toHaveBeenCalledTimes(2);
-        expect(onComputedMock).toHaveBeenCalledWith(10);
+      computed(() => count() * 2, {
+        keepAlive: true,
+        onComputed: onComputedMock,
       });
+
+      // Initial computation
+      expect(onComputedMock).toHaveBeenCalledTimes(1);
+      expect(onComputedMock).toHaveBeenCalledWith(0);
+
+      // Update should trigger computation and callback
+      count.set(5);
+      expect(onComputedMock).toHaveBeenCalledTimes(2);
+      expect(onComputedMock).toHaveBeenCalledWith(10);
     });
 
     test("should not track dependencies in onComputed callback", () => {
