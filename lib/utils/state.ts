@@ -24,16 +24,6 @@ export function createReactiveState(id: string): ReactiveState {
 let currentReactiveState: ReactiveState | null = null;
 
 /**
- * Get the currently active reactive state
- */
-export function getCurrentState(): ReactiveState {
-  if (!currentReactiveState) {
-    throw new Error("No active reactive state available");
-  }
-  return currentReactiveState;
-}
-
-/**
  * Set the currently active reactive state
  */
 export function setCurrentState(state: ReactiveState | null): void {
