@@ -1,6 +1,6 @@
-import { describe, test, expect } from "bun:test";
+import { describe, test, expect, mock } from "bun:test";
 import { signal, type Signal } from "../../lib";
-import { testCategories, mockFn, warnSpy, errorSpy } from "../setup";
+import { testCategories, warnSpy, errorSpy } from "../setup";
 
 export const signalOptions = (count: Signal<number>) =>
   describe(testCategories.options, () => {
@@ -35,13 +35,12 @@ export const signalOptions = (count: Signal<number>) =>
     });
 
     test("should call onSet hook when value changes", () => {
-      const count = signal(0, {
-        onSet: mockFn,
-      });
+      const onSet = mock();
+      const count = signal(0, { onSet });
 
       count.set(5);
 
-      expect(mockFn).toHaveBeenCalledWith(5, 0);
+      expect(onSet).toHaveBeenCalledWith(5, 0);
     });
 
     test("should handle errors in onSet hook", () => {

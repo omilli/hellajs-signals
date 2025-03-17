@@ -16,7 +16,6 @@ export const warnSpy = () =>
   spyOn(console, "warn").mockImplementation(() => {});
 export const errorSpy = () =>
   spyOn(console, "error").mockImplementation(() => {});
-export const mockFn = mock();
 
 // Helper to silence console warnings/errors during tests
 export function silenceConsole(fn: () => void): void {
