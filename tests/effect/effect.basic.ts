@@ -2,22 +2,22 @@ import { describe, test, expect, mock } from "bun:test";
 import { effect, signal, type Signal } from "../../lib";
 import { testCategories } from "../setup";
 
-export const effectBasic = (count: Signal<number>) =>
-  describe(testCategories.basic, () => {
+export const effectBasic = (count: Signal<number>) => {
+  const effectFn = () => {
+    count(); // Create dependency
+  };
+
+  return describe(testCategories.basic, () => {
     test("should run effect immediately", () => {
       const mockFn = mock();
-      const dispose = effect(() => {
-        mockFn();
-      });
+      const dispose = effect(mockFn);
 
       expect(mockFn).toHaveBeenCalledTimes(1);
       dispose();
     });
 
     test("should run effect when dependencies change", () => {
-      const mockFn = mock(() => {
-        count(); // Create dependency
-      });
+      const mockFn = mock(effectFn);
 
       const dispose = effect(mockFn);
       expect(mockFn).toHaveBeenCalledTimes(1);
@@ -29,9 +29,7 @@ export const effectBasic = (count: Signal<number>) =>
     });
 
     test("should stop tracking changes when disposed", () => {
-      const mockFn = mock(() => {
-        count(); // Create dependency
-      });
+      const mockFn = mock(effectFn);
 
       const dispose = effect(mockFn);
       expect(mockFn).toHaveBeenCalledTimes(1);
@@ -62,3 +60,4 @@ export const effectBasic = (count: Signal<number>) =>
       dispose();
     });
   });
+};
