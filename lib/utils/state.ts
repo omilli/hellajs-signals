@@ -1,5 +1,5 @@
 import type { EffectFn, ReactiveState } from "../types";
-import { NOT_TRACKING } from "./tracker";
+import { NOT_TRACKING } from "../utils/tracker";
 
 /**
  * Create a new reactive state object with default values

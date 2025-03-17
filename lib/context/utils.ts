@@ -1,4 +1,4 @@
-import { withState } from "../utils";
+import { withState, createReactiveState } from "../utils";
 import type { ReactiveContext, ReactiveState } from "../types";
 import { createDefaultContext } from "./bridge";
 
@@ -39,9 +39,10 @@ export function withContext<T>(ctx: ReactiveContext, fn: () => T): T {
 
   try {
     // Get the context's reactive state
-    const state = contextStates.get(ctx);
+    let state = contextStates.get(ctx);
     if (!state) {
-      throw new Error("Context has no associated reactive state");
+      state = createReactiveState(`context-${ctx}`); // Create state if it doesn't exist
+      contextStates.set(ctx, state); // Register the new state
     }
 
     // Run with this context's state as active
@@ -62,6 +63,7 @@ export function getDefaultContext(): ReactiveContext {
     // Use bridge to create context, avoiding circular import
     const context = createDefaultContext();
     globalObj[DEFAULT_CONTEXT_KEY] = context;
+    registerContextState(context, createReactiveState("default-context")); // Register state for default context
   }
 
   return globalObj[DEFAULT_CONTEXT_KEY];
