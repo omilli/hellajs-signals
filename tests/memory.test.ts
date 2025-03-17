@@ -2,11 +2,13 @@ import { describe, test, expect, mock } from "bun:test";
 import {
   signal,
   effect,
-  effectDependencies,
   getCurrentEffect,
   computed,
   type EffectFn,
+  getCurrentContext,
 } from "../lib";
+
+const ctx = getCurrentContext();
 
 describe("memory management", () => {
   test("should clean up effect dependencies when disposed", () => {
@@ -24,7 +26,7 @@ describe("memory management", () => {
     // Verify dependencies are established
     expect(a._deps.size).toBe(1);
     expect(b._deps.size).toBe(1);
-    expect(effectDependencies.get(effectFn!)?.size).toBe(2);
+    expect(ctx.effectDependencies.get(effectFn!)?.size).toBe(2);
 
     // Dispose the effect
     dispose();
@@ -32,7 +34,7 @@ describe("memory management", () => {
     // Verify all dependencies are cleaned up
     expect(a._deps.size).toBe(0);
     expect(b._deps.size).toBe(0);
-    expect(effectDependencies.has(effectFn!)).toBe(false);
+    expect(ctx.effectDependencies.has(effectFn!)).toBe(false);
   });
 
   test("should handle complex dependency graph cleanup", () => {
@@ -62,7 +64,7 @@ describe("memory management", () => {
 
   test("should not leak memory when many signals are created and disposed", () => {
     // Create many signals and track the count in effectDependencies
-    const initialMapSize = effectDependencies.size;
+    const initialMapSize = ctx.effectDependencies.size;
 
     // Create and then dispose 100 effects, each with its own signal
     for (let i = 0; i < 100; i++) {
@@ -74,6 +76,6 @@ describe("memory management", () => {
     }
 
     // Map size should be unchanged after all disposals
-    expect(effectDependencies.size).toBe(initialMapSize);
+    expect(ctx.effectDependencies.size).toBe(initialMapSize);
   });
 });

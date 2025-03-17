@@ -1,5 +1,5 @@
 import { getCurrentContext } from "./context";
-import { queueEffects, effectDependencies, getCurrentEffect } from "./effect";
+import { queueEffects, getCurrentEffect } from "./effect";
 import type { EffectFn, Signal, SignalOptions } from "./types";
 
 /**
@@ -51,11 +51,6 @@ export function signal<T>(
       const effectDeps = ctx.effectDependencies.get(activeEffect) || new Set();
       effectDeps.add(createSignal as Signal<unknown>);
       ctx.effectDependencies.set(activeEffect, effectDeps);
-
-      // Also track in global storage for backward compatibility
-      const globalDeps = effectDependencies.get(activeEffect) || new Set();
-      globalDeps.add(createSignal as Signal<unknown>);
-      effectDependencies.set(activeEffect, globalDeps);
     }
     return state.value;
   } as Signal<T>;

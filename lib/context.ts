@@ -90,10 +90,12 @@ export function createContext(): ReactiveContext {
         const originalCleanup = cleanup;
         const wrappedCleanup = () => {
           reactiveState.effects.delete(originalCleanup);
-          return originalCleanup();
+          // Make sure to call the original cleanup first to ensure proper dependency tracking
+          const result = originalCleanup();
+          return result;
         };
 
-        // Copy properties from original cleanup
+        // Copy properties from original cleanup - include _effect property
         Object.getOwnPropertyNames(originalCleanup).forEach((prop) => {
           if (prop !== "name" && prop !== "length") {
             Object.defineProperty(
@@ -103,6 +105,13 @@ export function createContext(): ReactiveContext {
             );
           }
         });
+
+        // Ensure _effect property is transferred
+        if ((originalCleanup as any)._effect) {
+          Object.defineProperty(wrappedCleanup, "_effect", {
+            value: (originalCleanup as any)._effect,
+          });
+        }
 
         return wrappedCleanup;
       });

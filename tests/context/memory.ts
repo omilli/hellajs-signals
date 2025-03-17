@@ -1,5 +1,7 @@
 import { describe, test, expect } from "bun:test";
-import { createContext, effectDependencies } from "../../lib";
+import { createContext, getCurrentContext } from "../../lib";
+
+const globalCtx = getCurrentContext();
 
 export const contextMemory = () =>
   describe("memory management", () => {
@@ -7,7 +9,7 @@ export const contextMemory = () =>
       const ctx = createContext();
 
       // Track initial effect count
-      const initialEffectCount = effectDependencies.size;
+      const initialEffectCount = globalCtx.effectDependencies.size;
 
       // Create 10 effects and immediately dispose them
       for (let i = 0; i < 10; i++) {
@@ -19,7 +21,7 @@ export const contextMemory = () =>
       }
 
       // Effect count should return to initial value
-      expect(effectDependencies.size).toBe(initialEffectCount);
+      expect(globalCtx.effectDependencies.size).toBe(initialEffectCount);
     });
 
     test("contexts should be garbage collectable when no longer referenced", async () => {

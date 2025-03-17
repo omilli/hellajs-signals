@@ -1,11 +1,13 @@
 import { describe, test, expect, mock, spyOn } from "bun:test";
 import {
   effect,
-  effectDependencies,
+  getCurrentContext,
   getCurrentEffect,
   signal,
   type EffectFn,
 } from "../lib";
+
+const ctx = getCurrentContext();
 
 describe("effect", () => {
   describe("basic", () => {
@@ -98,7 +100,7 @@ describe("effect", () => {
       });
 
       // Get dependencies for the effect
-      const deps = effectDependencies.get(effectFn!);
+      const deps = ctx.effectDependencies.get(effectFn!);
       expect(deps).toBeDefined();
       expect(deps!.size).toBe(1);
       expect(deps!.has(count)).toBe(true);
@@ -117,7 +119,7 @@ describe("effect", () => {
         (weakRef) => weakRef.deref() === effectFn
       );
       expect(effectStillExists).toBe(false);
-      expect(effectDependencies.has(effectFn!)).toBe(false);
+      expect(ctx.effectDependencies.has(effectFn!)).toBe(false);
     });
 
     test("should handle effects that modify multiple signals", () => {
@@ -161,7 +163,7 @@ describe("effect", () => {
       expect(mockFn).toHaveBeenCalledTimes(1);
 
       // Make sure effectDependencies is cleaned up
-      const remainingDeps = [...effectDependencies.entries()].filter(
+      const remainingDeps = [...ctx.effectDependencies.entries()].filter(
         ([_, deps]) => deps.has(count)
       );
       expect(remainingDeps.length).toBe(0);

@@ -20,13 +20,6 @@ export function getCurrentEffect(): EffectFn | null {
     : (ctx.activeTracker as EffectFn);
 }
 
-// For backward compatibility and test compatibility
-// We maintain this alongside context-specific storage
-export const effectDependencies: Map<
-  EffectFn,
-  Set<{ (): unknown; _deps: Set<WeakRef<EffectFn>> }>
-> = new Map();
-
 /**
  * Creates an effect that runs when its dependencies change
  */
@@ -40,6 +33,10 @@ export function effect(fn: EffectFn, options?: EffectOptions): CleanupFunction {
   // Create an observer function
   const observer = () => {
     // Prevent infinite recursion with execution context tracking
+    if ((observer as any)._disposed) {
+      return;
+    }
+
     if (ctx.executionContext.includes(observer)) {
       console.warn("Circular dependency detected in effect", {
         runningEffectsSize: ctx.executionContext.length,
@@ -84,11 +81,11 @@ export function effect(fn: EffectFn, options?: EffectOptions): CleanupFunction {
     _name: { value: name },
     _hasRun: { value: false, writable: true },
     _priority: { value: options?.priority },
+    _disposed: { value: false, writable: true },
   });
 
   // Create dependency tracking set - both in context and global store
   ctx.effectDependencies.set(observer, new Set());
-  effectDependencies.set(observer, new Set()); // For backward compatibility
 
   // Handle scheduling of the initial effect
   const executeEffect = () => {
@@ -103,6 +100,9 @@ export function effect(fn: EffectFn, options?: EffectOptions): CleanupFunction {
 
   // Create the disposal function
   const disposeEffect = () => {
+    // Mark as disposed immediately to prevent any future executions
+    (observer as any)._disposed = true;
+
     if (userCleanup) {
       try {
         userCleanup();
@@ -111,10 +111,21 @@ export function effect(fn: EffectFn, options?: EffectOptions): CleanupFunction {
       }
     }
 
+    // Remove from pending notifications if it's queued
+    const pendingIndex = ctx.pendingNotifications.findIndex(
+      (e) =>
+        e === observer ||
+        (e as any)._effect === observer ||
+        (observer as any)._effect === e
+    );
+
+    if (pendingIndex !== -1) {
+      ctx.pendingNotifications.splice(pendingIndex, 1);
+    }
+
     unsubscribeDependencies(observer);
     ctx.pendingRegistry.delete(observer);
     ctx.effectDependencies.delete(observer);
-    effectDependencies.delete(observer); // Clean up the global store too
   };
 
   Object.defineProperties(disposeEffect, {
@@ -199,6 +210,8 @@ export function flushEffects(): void {
     ctx.pendingRegistry.clear();
 
     for (const effect of effectsToRun) {
+      // Skip disposed effects
+      if ((effect as any)._disposed) continue;
       effect();
     }
   }
@@ -210,34 +223,42 @@ export function flushEffects(): void {
 function unsubscribeDependencies(effect: EffectFn) {
   const ctx = getCurrentContext();
 
-  // Get dependencies from both context-specific and global storage
+  // Get dependencies from both context-specific storage
   const ctxDeps = ctx.effectDependencies.get(effect);
-  const globalDeps = effectDependencies.get(effect);
 
-  // Thorough cleanup of both dependency sets
-  const allDeps = new Set([...(ctxDeps || []), ...(globalDeps || [])]);
+  // Thorough cleanup of dependency sets
+  const allDeps = new Set([...(ctxDeps || [])]);
 
   // For each signal this effect depends on, remove the effect from its subscribers
   for (const signal of allDeps) {
     if (signal && signal._deps) {
       const subscribers = signal._deps;
+      // Create array of refs to remove so we can modify while iterating
+      const refsToRemove = [];
+
       for (const weakRef of subscribers) {
         const subscribedEffect = weakRef.deref();
-        if (!subscribedEffect || subscribedEffect === effect) {
-          subscribers.delete(weakRef);
+        // Enhanced comparison - also check if this is the same observer function via _effect property
+        if (
+          !subscribedEffect ||
+          subscribedEffect === effect ||
+          (subscribedEffect as any)._effect === effect ||
+          (effect as any)._effect === subscribedEffect
+        ) {
+          refsToRemove.push(weakRef);
         }
+      }
+
+      // Now remove all the marked refs
+      for (const ref of refsToRemove) {
+        subscribers.delete(ref);
       }
     }
   }
 
-  // Clear and delete from both context and global tracking
+  // Clear and delete from context tracking
   if (ctxDeps) {
     ctxDeps.clear();
     ctx.effectDependencies.delete(effect);
-  }
-
-  if (globalDeps) {
-    globalDeps.clear();
-    effectDependencies.delete(effect);
   }
 }
