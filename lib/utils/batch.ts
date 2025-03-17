@@ -17,10 +17,3 @@ export function endBatch(state: ReactiveState): boolean {
   }
   return false;
 }
-
-/**
- * Get the current batch depth
- */
-export function getBatchDepth(state: ReactiveState): number {
-  return state.batchDepth;
-}

@@ -18,19 +18,6 @@ export function addDependency(
 }
 
 /**
- * Clear all dependencies for an effect
- */
-export function clearDependencies(
-  state: ReactiveState,
-  effect: EffectFn
-): void {
-  const deps = state.effectDependencies.get(effect);
-  if (deps) {
-    deps.clear();
-  }
-}
-
-/**
  * Track the current effect as dependent on a signal
  * This is called when a signal is read within an effect
  */
