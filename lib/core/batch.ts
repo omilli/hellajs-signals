@@ -1,6 +1,5 @@
 import { getCurrentContext } from "../context";
 import { flushEffects } from "../utils";
-
 /**
  * Batch multiple signal updates together
  * Effects will only run once at the end of the batch
@@ -19,7 +18,14 @@ export function batch<T>(fn: () => T): T {
 
     // If we're back at the top level, flush any pending effects
     if (ctx.batchDepth === 0) {
-      flushEffects(ctx);
+      if (
+        typeof window !== "undefined" &&
+        typeof queueMicrotask === "function"
+      ) {
+        queueMicrotask(() => flushEffects(ctx));
+      } else {
+        flushEffects(ctx);
+      }
     }
   }
 }

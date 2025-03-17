@@ -97,6 +97,16 @@ export function createReactiveContext(
         return dependencies.untracked(fn);
       });
     },
+
+    dispose: () => {
+      // Clean up all tracked signals and effects
+      for (const cleanup of state.effects) {
+        cleanup();
+      }
+      // Clean additional state
+      state.signals = new WeakSet(); // Replace with a new WeakSet instead of clearing
+      state.effectDependencies.clear();
+    },
   };
 
   // Register state for this context
