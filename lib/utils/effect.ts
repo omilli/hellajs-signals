@@ -31,44 +31,6 @@ export function scheduleEffects(
 }
 
 /**
- * Run an effect with proper error handling and context tracking
- */
-function runEffect(state: ReactiveState, effect: EffectFn): void {
-  // Check if effect is already executing (direct circular reference)
-  if (state.executionContext.includes(effect)) {
-    // Don't log warnings during garbage collection tests
-    // Only log in development for debugging
-    if (process.env.NODE_ENV !== "production" && state.id !== "default") {
-      console.warn("Circular dependency detected in effect", {
-        runningEffectsSize: state.executionContext.length,
-        effectId: (effect as any)._name || effect.toString().substring(0, 50),
-      });
-    }
-    return;
-  }
-
-  // Set up tracking context
-  const previousTracker = state.activeTracker;
-  state.activeTracker = effect;
-  state.executionContext.push(effect);
-
-  try {
-    effect();
-  } catch (error) {
-    const onError = (effect as any)._onError;
-    if (onError && error instanceof Error) {
-      onError(error);
-    } else {
-      console.error("Error in effect:", error);
-    }
-  } finally {
-    // Clean up tracking context
-    state.executionContext.pop();
-    state.activeTracker = previousTracker;
-  }
-}
-
-/**
  * Schedule effects to run after current operations complete
  */
 export function queueEffects(
@@ -148,23 +110,6 @@ export function flushPendingEffects(state: ReactiveState): void {
 }
 
 /**
- * Immediately flush any pending effects for a state
- */
-export function flushEffectsSync(state: ReactiveState): void {
-  if (state.pendingNotifications.length > 0) {
-    flushPendingEffects(state);
-  }
-}
-
-// Context accessor functions to replace global state
-export const setCurrentEffect = (
-  state: ReactiveState,
-  value: EffectFn | null
-): void => {
-  state.activeTracker = value === null ? NOT_TRACKING : value;
-};
-
-/**
  * Gets the currently active effect if there is one
  * @returns The current effect function or null if not in an effect
  */
@@ -173,4 +118,42 @@ export function getCurrentEffect(state: ReactiveState): EffectFn | null {
     typeof state.activeTracker === "symbol"
     ? null
     : (state.activeTracker as EffectFn);
+}
+
+/**
+ * Run an effect with proper error handling and context tracking
+ */
+function runEffect(state: ReactiveState, effect: EffectFn): void {
+  // Check if effect is already executing (direct circular reference)
+  if (state.executionContext.includes(effect)) {
+    // Don't log warnings during garbage collection tests
+    // Only log in development for debugging
+    if (process.env.NODE_ENV !== "production" && state.id !== "default") {
+      console.warn("Circular dependency detected in effect", {
+        runningEffectsSize: state.executionContext.length,
+        effectId: (effect as any)._name || effect.toString().substring(0, 50),
+      });
+    }
+    return;
+  }
+
+  // Set up tracking context
+  const previousTracker = state.activeTracker;
+  state.activeTracker = effect;
+  state.executionContext.push(effect);
+
+  try {
+    effect();
+  } catch (error) {
+    const onError = (effect as any)._onError;
+    if (onError && error instanceof Error) {
+      onError(error);
+    } else {
+      console.error("Error in effect:", error);
+    }
+  } finally {
+    // Clean up tracking context
+    state.executionContext.pop();
+    state.activeTracker = previousTracker;
+  }
 }
