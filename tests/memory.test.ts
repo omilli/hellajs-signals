@@ -20,7 +20,7 @@ describe("memory management", () => {
     const dispose = effect(() => {
       a();
       b();
-      effectFn = getCurrentEffect();
+      effectFn = getCurrentEffect(ctx);
     });
 
     // Verify dependencies are established

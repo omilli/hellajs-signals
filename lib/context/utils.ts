@@ -1,4 +1,4 @@
-import { createReactiveState, withState } from "../reactive/state";
+import { createReactiveState, withState } from "../utils/state";
 import type { ReactiveContext, ReactiveState } from "../types";
 import { signal } from "../core/signal";
 import { effect } from "../core/effect";

@@ -96,7 +96,7 @@ describe("effect", () => {
       // Create an effect and capture the effect function
       const dispose = effect(() => {
         count();
-        effectFn = getCurrentEffect();
+        effectFn = getCurrentEffect(ctx);
       });
 
       // Get dependencies for the effect

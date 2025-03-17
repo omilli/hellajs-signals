@@ -1,4 +1,4 @@
-import { createReactiveState } from "../reactive/state";
+import { createReactiveState } from "../utils/state";
 import { registerContextState, withContext } from "./utils";
 import type {
   CleanupFunction,

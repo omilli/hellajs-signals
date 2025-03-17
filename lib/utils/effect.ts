@@ -1,70 +1,6 @@
-import { hasActiveTracker, getActiveTracker, addDependency } from "./state";
-import type { EffectFn, ReactiveState, SignalBase } from "../types";
-
-/**
- * Track the current effect as dependent on a signal
- * This is called when a signal is read within an effect
- */
-export function trackDependency(
-  state: ReactiveState,
-  signal: SignalBase
-): void {
-  // Only track if there's an active effect
-  if (!hasActiveTracker(state)) return;
-
-  const activeEffect = getActiveTracker(state);
-  if (!activeEffect) return;
-
-  // Add bidirectional dependency relationship
-  // 1. Store signal as a dependency of the active effect
-  addDependency(state, activeEffect, signal);
-
-  // 2. Store effect as a dependent of the signal
-  signal._deps.add(new WeakRef(activeEffect));
-}
-
-/**
- * Notify all effects that depend on a changed signal
- */
-export function notifyDependents(
-  state: ReactiveState,
-  signal: SignalBase
-): void {
-  // Early return if no pending queue is needed
-  if (state.batchDepth === 0 && signal._deps.size === 0) return;
-
-  // Collect subscribers and clean up dead references
-  const liveEffects: EffectFn[] = [];
-  const deadRefs: WeakRef<EffectFn>[] = [];
-
-  for (const ref of signal._deps) {
-    const effect = ref.deref();
-    if (effect) {
-      liveEffects.push(effect);
-    } else {
-      deadRefs.push(ref);
-    }
-  }
-
-  // Clean up garbage collected effect references
-  for (const ref of deadRefs) {
-    signal._deps.delete(ref);
-  }
-
-  // During batching, just collect effects
-  if (state.batchDepth > 0) {
-    for (const effect of liveEffects) {
-      if (!state.pendingRegistry.has(effect)) {
-        state.pendingNotifications.push(effect);
-        state.pendingRegistry.add(effect);
-      }
-    }
-    return;
-  }
-
-  // Not batching, schedule effects to run
-  scheduleEffects(state, liveEffects);
-}
+import type { EffectFn, ReactiveState } from "../types";
+import { getBatchDepth } from "./batch";
+import { NOT_TRACKING } from "./tracker";
 
 /**
  * Schedule effects to run with proper priority handling
@@ -160,4 +96,81 @@ function runEffect(state: ReactiveState, effect: EffectFn): void {
     state.executionContext.pop();
     state.activeTracker = previousTracker;
   }
+}
+
+/**
+ * Schedule effects to run after current operations complete
+ */
+export function queueEffects(
+  state: ReactiveState,
+  subscribers: Set<WeakRef<EffectFn>>
+): void {
+  // Clean up dead references while processing
+  const deadRefs = new Set<WeakRef<EffectFn>>();
+
+  for (const weakRef of subscribers) {
+    const effect = weakRef.deref();
+    if (effect) {
+      // Effect is alive, queue it
+      if (!state.pendingRegistry.has(effect)) {
+        state.pendingNotifications.push(effect);
+        state.pendingRegistry.add(effect);
+      }
+    } else {
+      // Effect is gone, mark for cleanup
+      deadRefs.add(weakRef);
+    }
+  }
+
+  // Clean up dead references
+  for (const deadRef of deadRefs) {
+    subscribers.delete(deadRef);
+  }
+
+  // Critical fix: Ensure effects run immediately when not batching
+  if (getBatchDepth(state) === 0) {
+    flushEffects(state);
+  }
+}
+
+/**
+ * Process all queued effects
+ */
+export function flushEffects(state: ReactiveState): void {
+  if (state.pendingNotifications.length > 0) {
+    // Sort by priority if available
+    const effectsToRun = [...state.pendingNotifications].sort((a, b) => {
+      const priorityA = (a as any)._priority || 0;
+      const priorityB = (b as any)._priority || 0;
+      return priorityB - priorityA; // Higher priority runs first
+    });
+
+    state.pendingNotifications.length = 0;
+    state.pendingRegistry.clear();
+
+    for (const effect of effectsToRun) {
+      // Skip disposed effects
+      if ((effect as any)._disposed) continue;
+      effect();
+    }
+  }
+}
+
+// Context accessor functions to replace global state
+export const setCurrentEffect = (
+  state: ReactiveState,
+  value: EffectFn | null
+): void => {
+  state.activeTracker = value === null ? NOT_TRACKING : value;
+};
+
+/**
+ * Gets the currently active effect if there is one
+ * @returns The current effect function or null if not in an effect
+ */
+export function getCurrentEffect(state: ReactiveState): EffectFn | null {
+  return state.activeTracker === NOT_TRACKING ||
+    typeof state.activeTracker === "symbol"
+    ? null
+    : (state.activeTracker as EffectFn);
 }

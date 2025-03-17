@@ -1,5 +1,5 @@
-import { flushEffects } from "./effect";
 import { getCurrentContext } from "../context";
+import { flushEffects } from "../utils";
 
 /**
  * Batch multiple signal updates together
@@ -19,7 +19,7 @@ export function batch<T>(fn: () => T): T {
 
     // If we're back at the top level, flush any pending effects
     if (ctx.batchDepth === 0) {
-      flushEffects();
+      flushEffects(ctx);
     }
   }
 }

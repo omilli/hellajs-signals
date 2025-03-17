@@ -1,6 +1,6 @@
 import { getCurrentContext } from "../context";
-import { queueEffects, getCurrentEffect } from "./effect";
 import type { EffectFn, Signal, SignalOptions } from "../types";
+import { getCurrentEffect, queueEffects } from "../utils";
 
 /**
  * Creates a reactive signal with the specified initial value.
@@ -41,7 +41,7 @@ export function signal<T>(
 
   const createSignal = function () {
     // Check if we're currently executing within an effect context
-    const activeEffect = getCurrentEffect();
+    const activeEffect = getCurrentEffect(ctx);
     if (activeEffect) {
       // Add the active effect to this signal's subscribers
       state.subscribers.add(new WeakRef(activeEffect));
@@ -107,7 +107,7 @@ export function signal<T>(
 
         // queueEffects ensures effects run after current execution completes
         // and respects batching for efficiency
-        queueEffects(state.subscribers);
+        queueEffects(ctx, state.subscribers);
       },
     },
 
