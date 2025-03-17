@@ -65,7 +65,7 @@ export function getDefaultContext(): ReactiveContext {
   // Create default context if it doesn't exist
   if (!globalObj[DEFAULT_CONTEXT_KEY]) {
     // Inject dependencies when creating the context
-    const context = createContextInstance("default");
+    const context = createContextInstance();
     globalObj[DEFAULT_CONTEXT_KEY] = context;
   }
 
@@ -85,15 +85,12 @@ export function registerContextState(
 /**
  * Creates a context instance with internal state
  */
-function createContextInstance(id: string): ReactiveContext {
-  // Create placeholder for context methods
-  const context = {} as ReactiveContext;
-
+function createContextInstance(): ReactiveContext {
   // Create reactive state for this context
-  const state = createReactiveState(id);
+  const state = createReactiveState("default");
 
   // Register the state for this context
-  registerContextState(context, state);
+  registerContextState({} as ReactiveContext, state);
 
   return createReactiveContext({
     signal,
