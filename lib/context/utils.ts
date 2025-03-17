@@ -10,15 +10,14 @@ import { createReactiveContext } from "./factory";
 // Track context states using WeakMap for proper garbage collection
 const contextStates = new WeakMap<ReactiveContext, ReactiveState>();
 
-// Symbol for storing default context in global scope
-export const DEFAULT_CONTEXT_KEY = Symbol.for("reactiveContext");
-
 // Track the current context
 let currentContext: ReactiveContext | null = null;
 
+// Symbol for storing default context in global scope
+const DEFAULT_CONTEXT_KEY = Symbol.for("reactiveContext");
+
 /**
  * Get the currently active context's state
- * @internal
  */
 export function getCurrentContext(): ReactiveState {
   const ctx = currentContext || getDefaultContext();
@@ -31,7 +30,6 @@ export function getCurrentContext(): ReactiveState {
 
 /**
  * Set the currently active context
- * @internal
  */
 export function setCurrentContext(ctx: ReactiveContext | null): void {
   currentContext = ctx;
@@ -39,7 +37,6 @@ export function setCurrentContext(ctx: ReactiveContext | null): void {
 
 /**
  * Run a function with a specific context as active
- * @internal
  */
 export function withContext<T>(ctx: ReactiveContext, fn: () => T): T {
   const prevContext = currentContext;
@@ -61,7 +58,6 @@ export function withContext<T>(ctx: ReactiveContext, fn: () => T): T {
 
 /**
  * Gets the default context, creating it if needed
- * @internal
  */
 export function getDefaultContext(): ReactiveContext {
   const globalObj = getGlobalThis();
@@ -78,7 +74,6 @@ export function getDefaultContext(): ReactiveContext {
 
 /**
  * Register a reactive state for a context
- * @internal
  */
 export function registerContextState(
   context: ReactiveContext,
@@ -89,7 +84,6 @@ export function registerContextState(
 
 /**
  * Creates a context instance with internal state
- * @internal
  */
 function createContextInstance(id: string): ReactiveContext {
   // Create placeholder for context methods

@@ -4,7 +4,6 @@ import type { EffectFn, ReactiveState, SignalBase } from "../types";
 /**
  * Track the current effect as dependent on a signal
  * This is called when a signal is read within an effect
- * @internal
  */
 export function trackDependency(
   state: ReactiveState,
@@ -26,7 +25,6 @@ export function trackDependency(
 
 /**
  * Notify all effects that depend on a changed signal
- * @internal
  */
 export function notifyDependents(
   state: ReactiveState,
@@ -70,7 +68,6 @@ export function notifyDependents(
 
 /**
  * Schedule effects to run with proper priority handling
- * @internal
  */
 export function scheduleEffects(
   state: ReactiveState,
@@ -99,7 +96,6 @@ export function scheduleEffects(
 
 /**
  * Execute all pending effects
- * @internal
  */
 export function flushPendingEffects(state: ReactiveState): void {
   if (state.pendingNotifications.length === 0) return;
@@ -120,8 +116,16 @@ export function flushPendingEffects(state: ReactiveState): void {
 }
 
 /**
+ * Immediately flush any pending effects for a state
+ */
+export function flushEffectsSync(state: ReactiveState): void {
+  if (state.pendingNotifications.length > 0) {
+    flushPendingEffects(state);
+  }
+}
+
+/**
  * Run an effect with proper error handling and context tracking
- * @internal
  */
 function runEffect(state: ReactiveState, effect: EffectFn): void {
   // Check if effect is already executing (direct circular reference)

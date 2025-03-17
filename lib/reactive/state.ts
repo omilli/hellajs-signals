@@ -24,40 +24,36 @@ export function createReactiveState(id: string): ReactiveState {
 
 /**
  * Track the currently active reactive state for dependency tracking
- * @private Used by context system, not directly by users
  */
-let _currentReactiveState: ReactiveState | null = null;
+let currentReactiveState: ReactiveState | null = null;
 
 /**
  * Get the currently active reactive state
- * @internal
  */
 export function getCurrentState(): ReactiveState {
-  if (!_currentReactiveState) {
+  if (!currentReactiveState) {
     throw new Error("No active reactive state available");
   }
-  return _currentReactiveState;
+  return currentReactiveState;
 }
 
 /**
  * Set the currently active reactive state
- * @internal
  */
 export function setCurrentState(state: ReactiveState | null): void {
-  _currentReactiveState = state;
+  currentReactiveState = state;
 }
 
 /**
  * Run a function with a specific reactive state as the active state
- * @internal
  */
 export function withState<T>(state: ReactiveState, fn: () => T): T {
-  const prevState = _currentReactiveState;
-  _currentReactiveState = state;
+  const prevState = currentReactiveState;
+  currentReactiveState = state;
   try {
     return fn();
   } finally {
-    _currentReactiveState = prevState;
+    currentReactiveState = prevState;
   }
 }
 

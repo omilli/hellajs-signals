@@ -18,7 +18,6 @@ let config: SchedulerConfig = { ...DEFAULT_CONFIG };
 
 /**
  * Configure the scheduler behavior
- * @internal
  */
 export function configureScheduler(options: Partial<SchedulerConfig>): void {
   config = { ...config, ...options };
@@ -26,7 +25,6 @@ export function configureScheduler(options: Partial<SchedulerConfig>): void {
 
 /**
  * Get current scheduler configuration
- * @internal
  */
 export function getSchedulerConfig(): Readonly<SchedulerConfig> {
   return { ...config };
@@ -48,7 +46,6 @@ let isIdleCallbackScheduled = false;
 
 /**
  * Schedule an effect to run with given priority and mode
- * @internal
  */
 export function scheduleEffect(
   state: ReactiveState,
@@ -81,7 +78,6 @@ export function scheduleEffect(
 
 /**
  * Schedule a flush of all pending effects
- * @internal
  */
 export function scheduleFlush(
   state: ReactiveState,
@@ -117,7 +113,6 @@ export function scheduleFlush(
 
 /**
  * Schedule a callback in the microtask queue
- * @internal
  */
 export function scheduleMicrotask(callback: () => void): void {
   microtaskQueue.add(callback);
@@ -135,7 +130,6 @@ export function scheduleMicrotask(callback: () => void): void {
 
 /**
  * Schedule a callback in the task queue (using setTimeout)
- * @internal
  */
 export function scheduleTask(callback: () => void): void {
   taskQueue.add(callback);
@@ -153,7 +147,6 @@ export function scheduleTask(callback: () => void): void {
 
 /**
  * Schedule a callback before the next paint
- * @internal
  */
 export function scheduleAnimationFrame(callback: () => void): void {
   animationQueue.add(callback);
@@ -177,7 +170,6 @@ export function scheduleAnimationFrame(callback: () => void): void {
 
 /**
  * Schedule a callback during idle time
- * @internal
  */
 export function scheduleIdleCallback(callback: () => void): void {
   idleQueue.add(callback);
@@ -211,18 +203,7 @@ export function scheduleIdleCallback(callback: () => void): void {
 }
 
 /**
- * Immediately flush any pending effects for a state
- * @internal
- */
-export function flushEffectsSync(state: ReactiveState): void {
-  if (state.pendingNotifications.length > 0) {
-    flushPendingEffects(state);
-  }
-}
-
-/**
  * Create a custom scheduler function
- * @internal
  */
 export function createScheduler(
   mode: SchedulerMode = SchedulerMode.Microtask
