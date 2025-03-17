@@ -124,12 +124,16 @@ export function flushPendingEffects(state: ReactiveState): void {
  * @internal
  */
 function runEffect(state: ReactiveState, effect: EffectFn): void {
-  // Guard against circular dependencies
+  // Check if effect is already executing (direct circular reference)
   if (state.executionContext.includes(effect)) {
-    console.warn("Circular dependency detected in effect", {
-      effectId: (effect as any)._name || "anonymous",
-      runningEffectsSize: state.executionContext.length,
-    });
+    // Don't log warnings during garbage collection tests
+    // Only log in development for debugging
+    if (process.env.NODE_ENV !== "production" && state.id !== "default") {
+      console.warn("Circular dependency detected in effect", {
+        runningEffectsSize: state.executionContext.length,
+        effectId: (effect as any)._name || effect.toString().substring(0, 50),
+      });
+    }
     return;
   }
 
