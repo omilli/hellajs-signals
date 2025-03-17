@@ -1,5 +1,5 @@
-import { getCurrentContext, NOT_TRACKING } from "./context";
-
+import { getCurrentContext } from "../context";
+import { NOT_TRACKING } from "../reactive";
 /**
  * Access a signal's value without creating a dependency
  */

@@ -1,6 +1,6 @@
-import { getCurrentContext } from "./context";
+import { getCurrentContext } from "../context";
 import { queueEffects, getCurrentEffect } from "./effect";
-import type { EffectFn, Signal, SignalOptions } from "./types";
+import type { EffectFn, Signal, SignalOptions } from "../types";
 
 /**
  * Creates a reactive signal with the specified initial value.

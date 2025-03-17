@@ -1,5 +1,5 @@
 import { flushEffects } from "./effect";
-import { getCurrentContext } from "./context";
+import { getCurrentContext } from "../context";
 
 /**
  * Batch multiple signal updates together
@@ -23,11 +23,3 @@ export function batch<T>(fn: () => T): T {
     }
   }
 }
-
-/**
- * Get the current batch depth for the active context
- */
-export const getBatchDepth = (): number => {
-  const ctx = getCurrentContext();
-  return ctx.batchDepth || 0;
-};

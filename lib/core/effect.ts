@@ -1,6 +1,6 @@
-import { getBatchDepth } from "./batch";
-import type { CleanupFunction, EffectFn, EffectOptions } from "./types";
-import { getCurrentContext, NOT_TRACKING } from "./context";
+import type { CleanupFunction, EffectFn, EffectOptions } from "../types";
+import { getCurrentContext } from "../context";
+import { getBatchDepth, NOT_TRACKING } from "../reactive";
 
 // Context accessor functions to replace global state
 export const setCurrentEffect = (value: EffectFn | null): void => {
@@ -187,7 +187,7 @@ export function queueEffects(subscribers: Set<WeakRef<EffectFn>>): void {
   }
 
   // Critical fix: Ensure effects run immediately when not batching
-  if (getBatchDepth() === 0) {
+  if (getBatchDepth(ctx) === 0) {
     flushEffects();
   }
 }

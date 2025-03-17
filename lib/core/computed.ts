@@ -1,6 +1,6 @@
 import { effect } from "./effect";
 import { signal } from "./signal";
-import type { ComputedFn, SignalValue } from "./types";
+import type { ComputedFn, SignalValue } from "../types";
 
 /**
  * Creates a computed value that automatically updates when its dependencies change.
