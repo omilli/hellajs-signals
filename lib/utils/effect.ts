@@ -1,6 +1,6 @@
 import type { EffectFn, ReactiveState } from "../types";
 import { getBatchDepth } from "./batch";
-import { NOT_TRACKING } from "./tracker";
+import { NOT_TRACKING, setActiveTracker } from "./tracker";
 
 /**
  * Schedule effects to run with proper priority handling
@@ -113,7 +113,9 @@ export function flushPendingEffects(state: ReactiveState): void {
  * Gets the currently active effect if there is one
  * @returns The current effect function or null if not in an effect
  */
-export function getCurrentEffect(state: ReactiveState): EffectFn | null {
+export function getCurrentEffect(
+  state: ReactiveState
+): EffectFn | symbol | null {
   return state.activeTracker === NOT_TRACKING ||
     typeof state.activeTracker === "symbol"
     ? null
@@ -139,7 +141,7 @@ function runEffect(state: ReactiveState, effect: EffectFn): void {
 
   // Set up tracking context
   const previousTracker = state.activeTracker;
-  state.activeTracker = effect;
+  setActiveTracker(state, effect);
   state.executionContext.push(effect);
 
   try {
@@ -154,6 +156,6 @@ function runEffect(state: ReactiveState, effect: EffectFn): void {
   } finally {
     // Clean up tracking context
     state.executionContext.pop();
-    state.activeTracker = previousTracker;
+    setActiveTracker(state, previousTracker);
   }
 }

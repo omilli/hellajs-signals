@@ -15,7 +15,9 @@ export function hasActiveTracker(state: ReactiveState): boolean {
 /**
  * Gets the active effect tracker
  */
-export function getActiveTracker(state: ReactiveState): EffectFn | null {
+export function getActiveTracker(
+  state: ReactiveState
+): EffectFn | symbol | null {
   return state.activeTracker === NOT_TRACKING
     ? null
     : (state.activeTracker as EffectFn);
@@ -26,7 +28,7 @@ export function getActiveTracker(state: ReactiveState): EffectFn | null {
  */
 export function setActiveTracker(
   state: ReactiveState,
-  tracker: EffectFn | null
+  tracker: EffectFn | symbol | null
 ): void {
   state.activeTracker = tracker === null ? NOT_TRACKING : tracker;
 }

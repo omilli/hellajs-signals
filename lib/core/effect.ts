@@ -1,6 +1,7 @@
 import type { CleanupFunction, EffectFn, EffectOptions } from "../types";
 import { getCurrentContext } from "../context";
 import { unsubscribeDependencies } from "../utils/dependency";
+import { setActiveTracker } from "../utils";
 
 /**
  * Creates an effect that runs when its dependencies change
@@ -37,7 +38,7 @@ export function effect(fn: EffectFn, options?: EffectOptions): CleanupFunction {
 
     // Establish tracking context
     const previousTracker = ctx.activeTracker;
-    ctx.activeTracker = observer;
+    setActiveTracker(ctx, observer);
     ctx.executionContext.push(observer);
 
     try {
@@ -54,7 +55,7 @@ export function effect(fn: EffectFn, options?: EffectOptions): CleanupFunction {
       }
     } finally {
       ctx.executionContext.pop();
-      ctx.activeTracker = previousTracker;
+      setActiveTracker(ctx, previousTracker);
     }
   };
 
