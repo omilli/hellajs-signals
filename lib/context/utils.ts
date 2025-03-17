@@ -22,14 +22,6 @@ export function getCurrentContext(): ReactiveState {
   }
   return state;
 }
-
-/**
- * Set the currently active context
- */
-export function setCurrentContext(ctx: ReactiveContext | null): void {
-  currentContext = ctx;
-}
-
 /**
  * Run a function with a specific context as active
  */
