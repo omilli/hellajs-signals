@@ -40,10 +40,6 @@ export type ComputedFn<T> = () => T;
 
 export type CleanupFunction = () => void;
 
-export interface ComputedAccessor<T> extends SignalValue<T> {
-  _dispose(): void;
-}
-
 export interface SignalOptions<T> {
   name?: string;
   validators?: Array<(value: T) => boolean>;

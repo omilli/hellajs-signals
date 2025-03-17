@@ -1,5 +1,5 @@
 import { describe, test, expect, mock } from "bun:test";
-import { signal, computed, type ComputedAccessor } from "../lib";
+import { signal, computed, type SignalValue } from "../lib";
 
 describe("computed", () => {
   describe("basic", () => {
@@ -82,7 +82,7 @@ describe("computed", () => {
       expect(doubled()).toBe(2);
 
       // Dispose the computed value
-      (doubled as ComputedAccessor<number>)._dispose();
+      (doubled as SignalValue<number>)._cleanup();
 
       // Update the dependency
       count.set(2);

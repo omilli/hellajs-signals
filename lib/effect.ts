@@ -8,8 +8,17 @@ export const setCurrentEffect = (value: EffectFn | null): void => {
   ctx.activeTracker = value === null ? NOT_TRACKING : value;
 };
 
-// Re-export the getCurrentEffect from context for backward compatibility
-export { getCurrentEffect } from "./context";
+/**
+ * Gets the currently active effect if there is one
+ * @returns The current effect function or null if not in an effect
+ */
+export function getCurrentEffect(): EffectFn | null {
+  const ctx = getCurrentContext();
+  return ctx.activeTracker === NOT_TRACKING ||
+    typeof ctx.activeTracker === "symbol"
+    ? null
+    : (ctx.activeTracker as EffectFn);
+}
 
 // For backward compatibility and test compatibility
 // We maintain this alongside context-specific storage

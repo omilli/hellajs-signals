@@ -1,5 +1,5 @@
-import { getCurrentContext, getCurrentEffect } from "./context";
-import { queueEffects, effectDependencies } from "./effect";
+import { getCurrentContext } from "./context";
+import { queueEffects, effectDependencies, getCurrentEffect } from "./effect";
 import type { EffectFn, Signal, SignalOptions } from "./types";
 
 /**

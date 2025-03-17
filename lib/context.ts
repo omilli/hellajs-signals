@@ -29,18 +29,6 @@ export function getCurrentContext(): ReactiveState {
 }
 
 /**
- * Gets the currently active effect if there is one
- * @returns The current effect function or null if not in an effect
- */
-export function getCurrentEffect(): EffectFn | null {
-  const ctx = getCurrentContext();
-  return ctx.activeTracker === NOT_TRACKING ||
-    typeof ctx.activeTracker === "symbol"
-    ? null
-    : (ctx.activeTracker as EffectFn);
-}
-
-/**
  * Set the currently active context
  */
 export function setCurrentContext(ctx: ReactiveContext | null): void {
