@@ -1,4 +1,4 @@
-# @hellajs/reactive
+# @hellajs/signals
 
 A lightweight, powerful reactive programming library for JavaScript/TypeScript applications, providing fine-grained reactivity with an intuitive API.
 
