@@ -1,10 +1,11 @@
 import { describe, test, expect, mock } from "bun:test";
-import { signal, type Signal } from "../../lib";
+import { signal } from "../../lib";
 import { testCategories, warnSpy, errorSpy } from "../setup";
 
-export const signalOptions = (count: Signal<number>) =>
+export const signalOptions = () =>
   describe(testCategories.options, () => {
     test("should support name option for debugging", () => {
+      const count = signal(0, { name: "count" });
       // @ts-ignore: Accessing internal property for testing
       expect(count._name).toBe("count");
     });
