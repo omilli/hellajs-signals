@@ -1,80 +1,80 @@
 export interface SignalBase {
-  (): unknown;
-  _deps: Set<WeakRef<EffectFn>>;
+	(): unknown;
+	_deps: Set<WeakRef<EffectFn>>;
 }
 
 export interface SignalValue<T> {
-  (): T;
-  _cleanup: () => void;
-  _isComputed: boolean;
+	(): T;
+	_cleanup: () => void;
+	_isComputed: boolean;
 }
 
 export type SignalSetter<T> = (value: T) => void;
 
 export interface Signal<T> {
-  (): T;
-  set: SignalSetter<T>;
-  update: (updater: (value: T) => T) => void;
-  _deps: Set<WeakRef<EffectFn>>;
+	(): T;
+	set: SignalSetter<T>;
+	update: (updater: (value: T) => T) => void;
+	_deps: Set<WeakRef<EffectFn>>;
 }
 
 export interface SignalOptions<T> {
-  name?: string;
-  validators?: Array<(value: T) => boolean>;
-  onSet?: (newValue: unknown, oldValue: unknown) => void;
+	name?: string;
+	validators?: Array<(value: T) => boolean>;
+	onSet?: (newValue: unknown, oldValue: unknown) => void;
 }
 
 export interface EffectFn {
-  (): void;
-  _hasRun?: boolean;
-  _name?: string;
-  _priority?: number;
+	(): void;
+	_hasRun?: boolean;
+	_name?: string;
+	_priority?: number;
 }
 
 export interface EffectOptions {
-  name?: string; // For debugging and DevTools
-  scheduler?: (run: () => void) => void; // Custom scheduling
-  priority?: number; // Execution order (higher runs first)
-  once?: boolean; // Run once and dispose automatically
-  debounce?: number; // Wait time before executing
-  immediate?: boolean; // Whether to run effect immediately (default: true)
+	name?: string; // For debugging and DevTools
+	scheduler?: (run: () => void) => void; // Custom scheduling
+	priority?: number; // Execution order (higher runs first)
+	once?: boolean; // Run once and dispose automatically
+	debounce?: number; // Wait time before executing
+	immediate?: boolean; // Whether to run effect immediately (default: true)
 
-  onError?: (error: Error) => void; // Custom error handling
-  onCleanup?: () => void; // Alternative cleanup registration
+	onError?: (error: Error) => void; // Custom error handling
+	onCleanup?: () => void; // Alternative cleanup registration
 }
 
 export type ComputedFn<T> = () => T;
 
 export interface ComputedOptions<T> {
-  name?: string; // For debugging and DevTools
-  keepAlive?: boolean; // Whether to keep value computed when not accessed
-  onError?: (error: Error) => void; // Custom error handling
-  onComputed?: (value: T) => void; // Callback when value is computed
+	name?: string; // For debugging and DevTools
+	keepAlive?: boolean; // Whether to keep value computed when not accessed
+	onError?: (error: Error) => void; // Custom error handling
+	onComputed?: (value: T) => void; // Callback when value is computed
 }
 
 export type CleanupFunction = () => void;
 
 export interface ReactiveContext {
-  signal: <T>(initialValue: T, options?: SignalOptions<T>) => Signal<T>;
-  effect: (fn: EffectFn, options?: EffectOptions) => CleanupFunction;
-  computed: <T>(
-    deriveFn: ComputedFn<T>,
-    options?: ComputedOptions<T>
-  ) => SignalValue<T>;
-  batch: <T>(fn: () => T) => T;
-  untracked: <T>(fn: () => T) => T;
-  dispose?(): void;
+	signal: <T>(initialValue: T, options?: SignalOptions<T>) => Signal<T>;
+	effect: (fn: EffectFn, options?: EffectOptions) => CleanupFunction;
+	computed: <T>(
+		deriveFn: ComputedFn<T>,
+		options?: ComputedOptions<T>,
+	) => SignalValue<T>;
+	batch: <T>(fn: () => T) => T;
+	untracked: <T>(fn: () => T) => T;
+	dispose?(): void;
 }
 
 // New interface to represent reactive state for a context
 export interface ReactiveState {
-  id: string;
-  activeTracker: EffectFn | symbol;
-  pendingNotifications: EffectFn[];
-  pendingRegistry: Set<EffectFn>;
-  executionContext: EffectFn[];
-  effectDependencies: Map<EffectFn, Set<any>>;
-  effects: Set<CleanupFunction>;
-  signals: WeakSet<any>;
-  batchDepth: number; // Add batchDepth to track batching state per context
+	id: string;
+	activeTracker: EffectFn | symbol;
+	pendingNotifications: EffectFn[];
+	pendingRegistry: Set<EffectFn>;
+	executionContext: EffectFn[];
+	effectDependencies: Map<EffectFn, Set<any>>;
+	effects: Set<CleanupFunction>;
+	signals: WeakSet<any>;
+	batchDepth: number; // Add batchDepth to track batching state per context
 }
