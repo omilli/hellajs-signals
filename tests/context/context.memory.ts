@@ -4,7 +4,7 @@ import { createContext, getCurrentContext } from "../../lib";
 const globalCtx = getCurrentContext();
 
 export const contextMemory = () =>
-  describe("memory management", () => {
+  describe("memory", () => {
     test("contexts should clean up disposed effects", () => {
       const ctx = createContext();
 
@@ -51,5 +51,48 @@ export const contextMemory = () =>
       }
 
       expect(true).toBe(true);
+    });
+
+    test("context states are garbage collected when contexts are no longer referenced", async () => {
+      // Use a WeakRef to track if the context state gets GC'd
+      let contextRef;
+
+      // Create a scope for the context to go out of scope
+      {
+        const tempCtx = createContext();
+
+        // Store a weak reference to the context
+        contextRef = new WeakRef(tempCtx);
+
+        // Create some reactivity to ensure the state is properly initialized
+        const sig = tempCtx.signal(123);
+        tempCtx.effect(() => {
+          sig();
+        });
+
+        // Update to trigger effects
+        sig.set(456);
+
+        // Verify our reference is still valid at this point
+        expect(contextRef.deref()).toBe(tempCtx);
+      }
+
+      // Force garbage collection if possible
+      if (global.gc) {
+        // Run GC multiple times to increase likelihood of collection
+        for (let i = 0; i < 5; i++) {
+          global.gc();
+          // Small delay to give GC time to work
+          await new Promise((resolve) => setTimeout(resolve, 10));
+        }
+
+        // After aggressive GC, the context should be gone
+        // This is a "hopeful" test since GC behavior is not guaranteed
+        //@ts-ignore - undefined deref
+        expect(contextRef.deref()).toBe(undefined);
+      } else {
+        // Skip test if GC is not available
+        console.log("Skipping part of test: global.gc not available");
+      }
     });
   });

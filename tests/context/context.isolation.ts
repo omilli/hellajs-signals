@@ -2,7 +2,7 @@ import { describe, test, expect, mock } from "bun:test";
 import { signal, effect, createContext } from "../../lib";
 
 export const contextIsolation = () =>
-  describe("basic isolation", () => {
+  describe("isolation", () => {
     test("contexts should be completely isolated from each other", () => {
       // Create two separate contexts
       const ctx1 = createContext();

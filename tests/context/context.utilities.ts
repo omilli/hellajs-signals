@@ -2,7 +2,7 @@ import { describe, test, expect, mock } from "bun:test";
 import { createContext } from "../../lib";
 
 export const contextUtilities = () =>
-  describe("batch and untracked utilities", () => {
+  describe("utilities", () => {
     test("batch should respect context boundaries", () => {
       const ctx = createContext();
 
