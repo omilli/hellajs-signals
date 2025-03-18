@@ -63,7 +63,7 @@ export interface ReactiveContext {
   ) => SignalValue<T>;
   batch: <T>(fn: () => T) => T;
   untracked: <T>(fn: () => T) => T;
-  dispose(): void;
+  dispose?(): void;
 }
 
 // New interface to represent reactive state for a context
