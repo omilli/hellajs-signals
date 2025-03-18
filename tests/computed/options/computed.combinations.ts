@@ -2,7 +2,7 @@ import { describe, test, expect, mock } from "bun:test";
 import { signal, computed, batch, type Signal } from "../../../lib";
 
 export const computedCombinations = (count: Signal<number>) =>
-  describe("combinations", () => {
+  describe("multiple", () => {
     test("should handle multiple options together", () => {
       // Create signal for test
       const source = signal(0);
