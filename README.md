@@ -8,8 +8,8 @@ A lightweight, powerful reactive programming library for JavaScript/TypeScript a
 - **Computed Values**: Derived state that automatically updates when dependencies change
 - **Effects**: Side effects that run when their reactive dependencies update
 - **Batching**: Group multiple state changes together to avoid unnecessary recalculations
-- **Context Isolation**: Create isolated reactive contexts with independent state and reactivity
 - **Untracked Execution**: Execute code without tracking reactive dependencies
+- **Context Isolation**: Create isolated reactive contexts with independent state and reactivity
 
 ## Core Concepts
 
