@@ -4,105 +4,109 @@ import { signal } from "./signal";
 import { untracked } from "./untracked";
 
 /**
- * Creates a computed value that automatically updates when its dependencies change.
+ * Creates a computed signal that derives its value from other reactive dependencies.
+ * The computed value is lazily evaluated and cached until its dependencies change.
+ *
+ * @template T - The type of the computed value
+ * @param computedFn - Function that computes the derived value
+ * @param options - Optional configuration options
+ *
+ * @returns A signal-like accessor function that returns the current computed value
+ *
  */
 export function computed<T>(
   computedFn: ComputedFn<T>,
   options?: ComputedOptions<T>
 ): SignalValue<T> {
-  const keepAlive = options?.keepAlive || false;
-  const name = options?.name;
-  const onError = options?.onError;
-  const onComputed = options?.onComputed;
-
-  // Initialize state with lazy evaluation flags
-  let value: T;
-  let isStale = true;
-  let isDisposed = false;
-
-  // Create a backing signal that will handle dependency tracking
+  // Extract options with defaults
+  const { name, onError, onComputed, keepAlive = false } = options || {};
+  // Create a backing signal to store the computed value
   const backingSignal = signal<T>(undefined as unknown as T, { name });
 
-  // Set up an effect to track dependencies and mark as stale
+  // Internal state management
+  let value: T; // Cached value
+  let isStale = true; // Indicates if the cached value needs to be recomputed
+  let isDisposed = false; // Indicates if this computed signal has been cleaned up
+
+  /**
+   * Standardized error handling for compute operations
+   * Returns the error if there's no error handler (to be thrown)
+   */
+  const handleError = (error: unknown) => {
+    if (onError && error instanceof Error) {
+      onError(error);
+    } else {
+      console.error("Error in computed:", name || "unnamed", error);
+    }
+    return !onError ? error : undefined;
+  };
+
+  /**
+   * Computes the value and updates the internal state
+   * Triggers the onComputed callback if provided
+   */
+  const computeAndUpdate = () => {
+    const newValue = computedFn();
+    backingSignal.set(newValue);
+    value = newValue;
+    isStale = false;
+
+    if (onComputed) {
+      // Run callback outside of tracking context to avoid circular dependencies
+      untracked(() => onComputed(newValue));
+    }
+
+    return newValue;
+  };
+
+  /**
+   * Safely attempts to compute the value
+   * @param withUpdate - Whether to update the internal state with the computed value
+   * @returns The computed value or undefined if an error occurred
+   */
+  const tryCompute = (withUpdate = true) => {
+    try {
+      return withUpdate ? computeAndUpdate() : computedFn();
+    } catch (error) {
+      const maybeThrow = handleError(error);
+      if (maybeThrow) throw maybeThrow;
+    }
+  };
+
+  /**
+   * Set up a reactive effect that tracks dependencies of the computed function
+   * This makes the computed value automatically update when dependencies change
+   */
   const cleanup = effect(
     () => {
       if (isDisposed) return;
-
-      // Mark as needing recalculation
+      // Mark as stale whenever dependencies change
       isStale = true;
 
-      // If keepAlive is true, immediately compute the value
       if (keepAlive) {
-        try {
-          const newValue = computedFn();
-          backingSignal.set(newValue);
-          value = newValue;
-          isStale = false;
-
-          // Call onComputed hook if provided
-          if (onComputed) {
-            untracked(() => onComputed(newValue));
-          }
-        } catch (error) {
-          if (onError && error instanceof Error) {
-            onError(error);
-          } else {
-            console.error("Error in computed:", name || "unnamed", error);
-          }
-        }
+        // For keepAlive mode, immediately compute and update the value
+        tryCompute(true);
       } else {
-        // Just track dependencies by running the function
-        try {
-          computedFn();
-        } catch (error) {
-          // Handle errors in tracking phase
-          if (onError && error instanceof Error) {
-            onError(error);
-          } else {
-            console.error(
-              "Error tracking computed dependencies:",
-              name || "unnamed",
-              error
-            );
-          }
-        }
+        // Otherwise, just run the function to capture dependencies without updating
+        tryCompute(false);
       }
     },
     { name: `${name || "computed"}_tracker` }
   );
 
-  // Create the accessor function
+  /**
+   * The accessor function that returns the computed value
+   * Lazily computes the value when accessed if it's stale
+   */
   const accessor = () => {
-    // Recalculate if needed and not disposed
     if (isStale && !isDisposed) {
-      try {
-        value = computedFn();
-        backingSignal.set(value);
-        isStale = false;
-
-        // Call onComputed hook if provided
-        if (onComputed) {
-          untracked(() => onComputed(value));
-        }
-      } catch (error) {
-        if (onError && error instanceof Error) {
-          onError(error);
-        } else {
-          console.error("Error in computed:", name || "unnamed", error);
-        }
-
-        // Re-throw if no error handler
-        if (!onError) {
-          throw error;
-        }
-      }
+      tryCompute(true);
     }
 
-    // Return value through backing signal to establish dependencies
     return backingSignal();
   };
 
-  // Add metadata to the accessor
+  // Add metadata and cleanup method to the accessor function
   Object.defineProperties(accessor, {
     _isComputed: { value: true },
     _name: { value: name },

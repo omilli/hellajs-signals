@@ -4,37 +4,52 @@ import { getActiveTracker, queueEffects } from "../utils";
 
 /**
  * Creates a new signal with the given initial value and options.
- * @param value - The initial value of the signal.
- * @param options - Additional options for the signal.
- * @returns The created signal.
+ * A signal is a reactive primitive that tracks a single value and notifies
+ * subscribers when the value changes.
+ *
+ * @template T - The type of value stored in the signal
+ * @param value - The initial value of the signal
+ * @param options - Additional options for configuring the signal behavior
+ * @returns A signal function that can be called to read the current value
  */
 export function signal<T>(value: T, options?: SignalOptions<T>): Signal<T> {
-  // Get the current reactive context
+  // Get the current reactive context - contains the global state for reactivity
   const ctx = getCurrentContext();
-  // Extract options
+
+  // Extract options with defaults
   const { name, validators = [] } = options || {};
-  // Subscribers are effects that depend on this signal
+
+  // Track effects that depend on this signal using WeakRefs to avoid memory leaks
   const subscribers = new Set<WeakRef<EffectFn>>();
 
-  // The base signal function to be returned
+  /**
+   * The core signal function that both reads the value and tracks dependencies
+   * This function is called when consumers access the signal value: signal()
+   */
   const signalFn = (() => {
-    // Get the currently active effect (if any)
+    // Check if this read is happening during an effect execution
     const activeEffect = getActiveTracker(ctx);
+
+    // If so, establish bidirectional links between effect and signal
     if (activeEffect) {
-      // Get or create the set of dependencies for the active effect
+      // Get/create the set of signals this effect depends on
       const effectDeps = ctx.effectDependencies.get(activeEffect) || new Set();
-      // Add the active effect to the subscribers of this signal
+      // Add this effect as a subscriber to the signal
       subscribers.add(new WeakRef(activeEffect));
-      // Add this signal to the dependencies of the active effect
+      // Add this signal to the effect's dependencies
       effectDeps.add(signalFn);
-      // Update the context's effect dependencies
+      // Update the context's effect dependencies map
       ctx.effectDependencies.set(activeEffect, effectDeps);
     }
-    // Return the current value when the function is called
+    // Simply return the current value
     return value;
   }) as Signal<T>;
 
-  // Did pass validation of all validators
+  /**
+   * Validates a new value against all registered validators
+   * @param newValue - The value to validate
+   * @returns Whether the value passed all validators
+   */
   const didValidate = (newValue: T): boolean => {
     if (validators.length > 0 && !validators.every((v) => v(newValue))) {
       console.warn(`Validation failed: "${name || "unnamed"}"`, newValue);
@@ -43,7 +58,11 @@ export function signal<T>(value: T, options?: SignalOptions<T>): Signal<T> {
     return true;
   };
 
-  // Try to run the onSet callback
+  /**
+   * Invokes the onSet callback if provided in options
+   * Safely handles any errors in the callback
+   * @param newValue - The new value being set
+   */
   const tryOnSet = (newValue: T) => {
     if (options?.onSet) {
       try {
@@ -54,37 +73,52 @@ export function signal<T>(value: T, options?: SignalOptions<T>): Signal<T> {
     }
   };
 
-  // Update the value and notify subscribers
+  /**
+   * Updates the signal value and notifies all subscribers
+   * This is the core update mechanism that ensures reactivity
+   * @param newValue - The new value to set
+   */
   const update = (newValue: T) => {
     tryOnSet(newValue);
     value = newValue;
+
+    // Schedule all dependent effects for execution
     queueEffects(ctx, subscribers);
   };
 
-  // Update new value if it passes validation
+  /**
+   * Direct value setter that validates and updates the signal value
+   * This is exposed as the .set() method on the signal
+   * @param newValue - The new value to set
+   */
   const setter = (newValue: T) => {
     if (!didValidate(newValue)) {
       return;
     }
+
+    // Only update if the value has actually changed
     if (newValue !== value) {
       update(newValue);
     }
   };
 
-  // Update the value using a function
+  /**
+   * Functional updater that accepts a function to compute the new value
+   * This is exposed as the .update() method on the signal
+   * @param updateFn - Function that receives current value and returns new value
+   */
   const updater = (updateFn: (currentValue: T) => T) => {
     const newValue = updateFn(value);
     signalFn.set(newValue);
   };
 
-  // Define the properties on the signal function
+  // Attach methods and properties to the signal function
   Object.defineProperties(signalFn, {
-    _name: { value: name },
-    _deps: { get: () => subscribers },
-    set: { value: setter },
-    update: { value: updater },
+    _name: { value: name }, // Name for debugging
+    _deps: { get: () => subscribers }, // Access to subscribers for debugging/tooling
+    set: { value: setter }, // Method to update the signal value
+    update: { value: updater }, // Method to update via a function
   });
 
-  // Return the signal function
   return signalFn;
 }
