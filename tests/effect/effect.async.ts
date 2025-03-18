@@ -99,4 +99,49 @@ export const effectAsync = () =>
       expect(asyncEffect).toHaveBeenCalledTimes(2);
       expect(asyncEffect).toHaveBeenLastCalledWith(5);
     });
+
+    test("should support cancellation token for async effects", async () => {
+      const source = signal(0);
+      const results: string[] = [];
+      let controller = new AbortController();
+
+      effect(async () => {
+        // Current signal to use for this execution
+        const signal = controller.signal;
+        const value = source();
+
+        try {
+          // Simulate long operation
+          await new Promise((resolve, reject) => {
+            const timer = setTimeout(resolve, 100);
+            signal.addEventListener("abort", () => {
+              clearTimeout(timer);
+              reject(new Error("Cancelled"));
+            });
+          });
+
+          // Only record if not cancelled
+          if (!signal.aborted) {
+            results.push(`completed-${value}`);
+          }
+        } catch (err: any) {
+          if (err.message !== "Cancelled") throw err;
+          results.push(`cancelled-${value}`);
+        }
+      });
+
+      // Start a long operation
+      source.set(1);
+
+      // Cancel current operation and start a new one
+      await new Promise((r) => setTimeout(r, 10));
+      controller.abort();
+      controller = new AbortController();
+      source.set(2);
+
+      // Wait for completion
+      await new Promise((r) => setTimeout(r, 150));
+      expect(results).toContain("cancelled-1");
+      expect(results).toContain("completed-2");
+    });
   });

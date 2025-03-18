@@ -69,6 +69,7 @@ export function effect(fn: EffectFn, options?: EffectOptions): CleanupFunction {
   };
 
   // Core function to execute the effect
+  // Core function to execute the effect
   const executeEffectCore = () => {
     // Remove prior subscriptions
     unsubscribeDependencies(observer);
@@ -84,10 +85,14 @@ export function effect(fn: EffectFn, options?: EffectOptions): CleanupFunction {
     ctx.executionContext.push(observer);
 
     try {
-      const result = fn() as void | Promise<void>;
+      const result = fn() as void | Promise<void> | (() => void);
 
+      // Handle the case where the effect returns a cleanup function
+      if (typeof result === "function") {
+        userCleanup = result;
+      }
       // Handle async functions that return promises
-      if (result instanceof Promise) {
+      else if (result instanceof Promise) {
         result.catch((error) => {
           if (onError && error instanceof Error) {
             onError(error);
