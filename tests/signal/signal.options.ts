@@ -27,10 +27,7 @@ export const signalOptions = () =>
       expect(evenOnly()).toBe(2); // Value shouldn't change
 
       // Verify warning was logged
-      expect(spy).toHaveBeenCalledWith(
-        'Validation failed for signal "evenOnly"',
-        3
-      );
+      expect(spy).toHaveBeenCalledWith('Validation failed: "evenOnly"', 3);
 
       spy.mockRestore();
     });
@@ -59,9 +56,7 @@ export const signalOptions = () =>
 
       // Error should be logged
       expect(spy).toHaveBeenCalled();
-      expect(spy.mock.calls[0][0]).toContain(
-        'Error in onSet hook for signal "errorHook"'
-      );
+      expect(spy.mock.calls[0][0]).toContain('onSet error: "errorHook"');
 
       spy.mockRestore();
     });

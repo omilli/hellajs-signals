@@ -3,81 +3,88 @@ import type { EffectFn, Signal, SignalOptions } from "../types";
 import { getActiveTracker, queueEffects } from "../utils";
 
 /**
- * Creates a reactive signal with the specified initial value.
+ * Creates a new signal with the given initial value and options.
+ * @param initialValue - The initial value of the signal.
+ * @param options - Additional options for the signal.
+ * @returns The created signal.
  */
-export function signal<T>(
-	initialValue: T,
-	options?: SignalOptions<T>,
-): Signal<T> {
-	const ctx = getCurrentContext();
-	const validators = options?.validators || [];
-	const name = options?.name;
+export function signal<T>(value: T, options?: SignalOptions<T>): Signal<T> {
+  // Get the current reactive context
+  const ctx = getCurrentContext();
+  // Extract options
+  const { name, validators = [] } = options || {};
+  // Subscribers are effects that depend on this signal
+  const subscribers = new Set<WeakRef<EffectFn>>();
 
-	// Store value directly in closure instead of separate object
-	let value = initialValue;
+  // The base signal function to be returned
+  const signalFn = (() => {
+    // Get the currently active effect (if any)
+    const activeEffect = getActiveTracker(ctx);
+    if (activeEffect) {
+      // Get or create the set of dependencies for the active effect
+      const effectDeps = ctx.effectDependencies.get(activeEffect) || new Set();
+      // Add the active effect to the subscribers of this signal
+      subscribers.add(new WeakRef(activeEffect));
+      // Add this signal to the dependencies of the active effect
+      effectDeps.add(signalFn);
+      // Update the context's effect dependencies
+      ctx.effectDependencies.set(activeEffect, effectDeps);
+    }
+    // Return the current value when the function is called
+    return value;
+  }) as Signal<T>;
 
-	// Use WeakSet for better garbage collection
-	const subscribers = new Set<WeakRef<EffectFn>>();
+  // Did pass validation of all validators
+  const didValidate = <V extends T>(newValue: V): boolean => {
+    if (validators.length > 0 && !validators.every((v) => v(newValue))) {
+      console.warn(`Validation failed: "${name || "unnamed"}"`, newValue);
+      return false;
+    }
+    return true;
+  };
 
-	const signalFn = (() => {
-		const activeEffect = getActiveTracker(ctx);
-		if (activeEffect) {
-			// Add the active effect to this signal's subscribers
-			subscribers.add(new WeakRef(activeEffect));
+  // Try to run the onSet callback
+  const tryOnSet = <V extends T>(newValue: V) => {
+    if (options?.onSet) {
+      try {
+        options.onSet(newValue, value);
+      } catch (e) {
+        console.error(`onSet error: "${name || "unnamed"}"`, e);
+      }
+    }
+  };
 
-			// Add signal to effect's dependencies
-			const effectDeps = ctx.effectDependencies.get(activeEffect) || new Set();
-			effectDeps.add(signalFn);
-			ctx.effectDependencies.set(activeEffect, effectDeps);
-		}
-		return value;
-	}) as Signal<T>;
+  // Update the value and notify subscribers
+  const update = <V extends T>(newValue: V) => {
+    tryOnSet(newValue);
+    value = newValue;
+    queueEffects(ctx, subscribers);
+  };
 
-	// Define read-only properties and methods
-	Object.defineProperties(signalFn, {
-		_name: { value: name },
-		_deps: { get: () => subscribers },
+  // Update new value if it passes validation
+  const setter = (newValue: T) => {
+    if (!didValidate(newValue)) {
+      return;
+    }
+    if (newValue !== value) {
+      update(newValue);
+    }
+  };
 
-		set: {
-			value: (newValue: T) => {
-				// Validator checks
-				if (validators.length > 0 && !validators.every((v) => v(newValue))) {
-					console.warn(
-						`Validation failed for signal "${name || "unnamed"}"`,
-						newValue,
-					);
-					return;
-				}
+  // Update the value using a function
+  const updater = (updateFn: (currentValue: T) => T) => {
+    const newValue = updateFn(value);
+    signalFn.set(newValue);
+  };
 
-				const oldValue = value;
-				if (newValue !== oldValue) {
-					// Simple equality check for performance
-					value = newValue;
+  // Define the properties on the signal function
+  Object.defineProperties(signalFn, {
+    _name: { value: name },
+    _deps: { get: () => subscribers },
+    set: { value: setter },
+    update: { value: updater },
+  });
 
-					// Call onSet hook if provided
-					if (options?.onSet) {
-						try {
-							options.onSet(newValue, oldValue);
-						} catch (e) {
-							console.error(
-								`Error in onSet hook for signal "${name || "unnamed"}"`,
-								e,
-							);
-						}
-					}
-
-					queueEffects(ctx, subscribers);
-				}
-			},
-		},
-
-		update: {
-			value: (updater: (currentValue: T) => T) => {
-				const newValue = updater(value);
-				signalFn.set(newValue);
-			},
-		},
-	});
-
-	return signalFn;
+  // Return the signal function
+  return signalFn;
 }
