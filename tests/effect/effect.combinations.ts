@@ -1,6 +1,6 @@
 import { describe, test, expect } from "bun:test";
 import { effect, signal, batch } from "../../lib";
-import { effectTick } from "../setup";
+import { tick } from "../setup";
 
 export const effectCombinations = () =>
   describe("feature combinations", () => {
@@ -36,7 +36,7 @@ export const effectCombinations = () =>
       expect(executionOrder).toEqual(["low"]);
 
       // Wait for debounced high priority effect
-      await effectTick();
+      await tick();
 
       // Despite higher priority, debounced effect runs later
       expect(executionOrder).toEqual(["low", "high"]);

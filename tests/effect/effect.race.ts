@@ -1,5 +1,6 @@
 import { describe, test, expect } from "bun:test";
 import { effect, signal } from "../../lib";
+import { tick } from "../setup";
 
 export const effectRace = () =>
   describe("race", () => {
@@ -11,7 +12,7 @@ export const effectRace = () =>
       effect(async () => {
         const value = source();
         // Simulate varying processing times
-        await new Promise((r) => setTimeout(r, value === 1 ? 50 : 10));
+        await tick(value === 1 ? 50 : 10);
         results.push(`processed-${value}`);
       });
 
@@ -20,7 +21,7 @@ export const effectRace = () =>
       source.set(2);
 
       // Wait for all processing to complete
-      await new Promise((r) => setTimeout(r, 100));
+      await tick(100);
 
       // Results should reflect the effect running for both values
       // in the correct order despite different processing times
@@ -42,7 +43,7 @@ export const effectRace = () =>
         const currentCount = counter();
 
         // Simulate async work
-        await new Promise((r) => setTimeout(r, 20));
+        await tick(20);
 
         // Only record if the effect is still relevant
         if (!toggle()) return;
@@ -53,7 +54,7 @@ export const effectRace = () =>
       counter.set(1);
 
       // Wait a bit but not enough to complete
-      await new Promise((r) => setTimeout(r, 10));
+      await tick(10);
 
       // Cancel current operations by toggling off
       toggle.set(false);
@@ -62,7 +63,7 @@ export const effectRace = () =>
       dispose();
 
       // Wait to ensure any pending operations complete
-      await new Promise((r) => setTimeout(r, 30));
+      await tick(30);
 
       // No operations should complete after toggle off
       expect(completedOperations).toEqual([]);

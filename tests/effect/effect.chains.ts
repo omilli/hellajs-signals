@@ -1,6 +1,6 @@
 import { describe, test, expect } from "bun:test";
 import { effect, signal } from "../../lib";
-import { effectTick } from "../setup";
+import { tick } from "../setup";
 
 export const effectChains = () =>
   describe("chains", () => {
@@ -37,7 +37,7 @@ export const effectChains = () =>
       a.set(1);
 
       // Wait for all the timeouts to complete
-      await effectTick();
+      await tick();
 
       expect(a()).toBe(3);
       expect(b()).toBe(12);

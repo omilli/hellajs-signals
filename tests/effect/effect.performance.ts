@@ -1,6 +1,6 @@
 import { describe, test, expect } from "bun:test";
 import { effect, signal, batch } from "../../lib";
-import { ctx } from "../setup";
+import { ctx, tick } from "../setup";
 
 export const effectPerformance = () =>
   describe("performance", () => {
@@ -128,7 +128,7 @@ export const effectPerformance = () =>
       }
 
       // Wait for possible async GC
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await tick(100);
 
       // We can't strictly assert on GC, but we're testing that code path
       // is free of issues that would prevent GC

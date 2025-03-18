@@ -8,5 +8,5 @@ export const warnSpy = () =>
 export const errorSpy = () =>
   spyOn(console, "error").mockImplementation(() => {});
 
-export const effectTick = (ms = 50) =>
+export const tick = (ms = 50) =>
   new Promise((resolve) => setTimeout(resolve, ms));
