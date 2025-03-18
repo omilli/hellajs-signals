@@ -30,6 +30,7 @@ export const signalMemory = () =>
     test("should allow signals to be garbage collected", async () => {
       // This test is more conceptual since we can't directly control GC
       let tempSignal = signal(0);
+      new WeakRef(tempSignal);
 
       // Remove the reference
       tempSignal = null as any;

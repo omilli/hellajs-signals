@@ -3,15 +3,36 @@ import { getCurrentContext } from "../context";
 import { unsubscribeDependencies } from "../utils/dependency";
 import { setActiveTracker } from "../utils";
 
+// Track parent-child relationships between effects
+const parentChildEffectsMap = new WeakMap<
+  CleanupFunction,
+  Set<CleanupFunction>
+>();
+// Keep track of the current executing parent effect
+let currentExecutingEffect: CleanupFunction | null = null;
+
 /**
  * Creates an effect that runs when its dependencies change
  */
+
 export function effect(fn: EffectFn, options?: EffectOptions): CleanupFunction {
   const ctx = getCurrentContext();
   const { name, scheduler, once, debounce, onError, onCleanup } = options || {};
 
   // Store user's cleanup function if provided
   let userCleanup: (() => void) | undefined = onCleanup;
+
+  // For debouncing
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  let isFirstRun = true;
+
+  const scheduleRun = (runFn: () => void) => {
+    if (scheduler) {
+      scheduler(runFn);
+    } else {
+      runFn();
+    }
+  };
 
   // Create an observer function
   const observer = () => {
@@ -33,16 +54,49 @@ export function effect(fn: EffectFn, options?: EffectOptions): CleanupFunction {
       return;
     }
 
+    // Handle debouncing for non-initial runs
+    if (debounce && debounce > 0 && !isFirstRun) {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => scheduleRun(executeEffectCore), debounce);
+      return;
+    }
+
+    // For first run or non-debounced runs, execute immediately
+    isFirstRun = false;
+
+    // Use the scheduler for all effect executions
+    scheduleRun(executeEffectCore);
+  };
+
+  // Core function to execute the effect
+  const executeEffectCore = () => {
     // Remove prior subscriptions
     unsubscribeDependencies(observer);
 
     // Establish tracking context
     const previousTracker = ctx.activeTracker;
+    const previousParentEffect = currentExecutingEffect;
+
+    // Set this effect as the current executing effect
+    currentExecutingEffect = disposeEffect;
+
     setActiveTracker(ctx, observer);
     ctx.executionContext.push(observer);
 
     try {
-      fn();
+      const result = fn() as void | Promise<void>;
+
+      // Handle async functions that return promises
+      if (result instanceof Promise) {
+        result.catch((error) => {
+          if (onError && error instanceof Error) {
+            onError(error);
+          } else {
+            console.error("Error in async effect:", error);
+          }
+        });
+      }
+
       // Mark as having run at least once (for "once" option)
       if (once) {
         (observer as EffectFn)._hasRun = true;
@@ -56,6 +110,8 @@ export function effect(fn: EffectFn, options?: EffectOptions): CleanupFunction {
     } finally {
       ctx.executionContext.pop();
       setActiveTracker(ctx, previousTracker);
+      // Restore previous parent effect
+      currentExecutingEffect = previousParentEffect;
     }
   };
 
@@ -70,21 +126,26 @@ export function effect(fn: EffectFn, options?: EffectOptions): CleanupFunction {
   // Create dependency tracking set - both in context and global store
   ctx.effectDependencies.set(observer, new Set());
 
-  // Handle scheduling of the initial effect
-  const executeEffect = () => {
-    // Execute immediately to establish dependencies
-    observer();
-
-    // If once option is set, dispose after first run
-    if (once) {
-      disposeEffect();
-    }
-  };
-
   // Create the disposal function
   const disposeEffect = () => {
+    // Cancel any pending debounced execution
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+      timeoutId = undefined;
+    }
+
     // Mark as disposed immediately to prevent any future executions
     (observer as any)._disposed = true;
+
+    // Dispose all child effects first
+    const childEffects = parentChildEffectsMap.get(disposeEffect);
+    if (childEffects) {
+      for (const childDispose of childEffects) {
+        childDispose();
+      }
+      childEffects.clear();
+      parentChildEffectsMap.delete(disposeEffect);
+    }
 
     if (userCleanup) {
       try {
@@ -116,25 +177,20 @@ export function effect(fn: EffectFn, options?: EffectOptions): CleanupFunction {
     _effect: { value: observer },
   });
 
-  // Handle custom scheduling or debouncing
-  if (scheduler) {
-    // Use custom scheduler
-    scheduler(executeEffect);
-  } else if (debounce && debounce > 0) {
-    // Use debouncing
-    let timeoutId: number | undefined;
-    let isInitialRun = true;
-
-    if (isInitialRun) {
-      executeEffect();
-      isInitialRun = false;
-    } else {
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(executeEffect, debounce) as unknown as number;
+  if (currentExecutingEffect) {
+    let parentChildEffects = parentChildEffectsMap.get(currentExecutingEffect);
+    if (!parentChildEffects) {
+      parentChildEffects = new Set();
+      parentChildEffectsMap.set(currentExecutingEffect, parentChildEffects);
     }
+    parentChildEffects.add(disposeEffect);
+  }
+
+  // Handle custom scheduling or immediate execution
+  if (scheduler) {
+    scheduler(observer);
   } else {
-    // Default immediate execution
-    executeEffect();
+    observer(); // Initial execution
   }
 
   // Return cleanup function
