@@ -4,7 +4,8 @@ import { signal, computed, type Signal } from "../../../lib";
 export const computedOnError = (count: Signal<number>) =>
   describe("onError", () => {
     test("should call onError when computation throws", () => {
-      // Create error handler mock
+      // Tests that the onError handler is called when the computation function throws an error
+      // Verifies error is passed correctly to the handler
       const errorHandler = mock();
       const testError = new Error("Computation error");
 
@@ -36,7 +37,8 @@ export const computedOnError = (count: Signal<number>) =>
     });
 
     test("should prevent errors from propagating when onError is provided", () => {
-      // Create a signal specifically for triggering errors
+      // Tests that providing an onError handler prevents errors from propagating
+      // to calling code, allowing graceful error handling
       const errorCount = signal(0);
 
       // Create computed with error handler that doesn't rethrow

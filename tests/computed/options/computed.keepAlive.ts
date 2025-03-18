@@ -4,7 +4,8 @@ import { computed, type Signal } from "../../../lib";
 export const computedKeepAlive = (count: Signal<number>) =>
   describe("keepAlive", () => {
     test("should compute value immediately when dependencies change", () => {
-      // Mock to track computation function calls
+      // Tests that keepAlive computed signals recompute immediately when dependencies change,
+      // without waiting for the value to be accessed
       const computeFn = mock(() => count() * 2);
 
       // Create computed with keepAlive option
@@ -23,7 +24,8 @@ export const computedKeepAlive = (count: Signal<number>) =>
     });
 
     test("should compare keepAlive vs non-keepAlive behavior", () => {
-      // Create one regular computed and one keepAlive computed
+      // Compares behavior between regular computed and keepAlive computed signals
+      // to demonstrate the differences in computation timing
       const computeRegular = mock(() => count() * 2);
       const computeKeepAlive = mock(() => count() * 3);
 

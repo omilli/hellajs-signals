@@ -4,6 +4,7 @@ import { signal, computed } from "../../lib";
 export const computedAsync = () =>
   describe("async", () => {
     test("should handle computed functions that return Promises", async () => {
+      // This test checks if the computed signal can handle computed functions that return Promises.
       const a = signal(1);
       const myComputed = computed(async () => {
         return (await a()) * 2;

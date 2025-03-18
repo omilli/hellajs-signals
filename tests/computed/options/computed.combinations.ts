@@ -4,7 +4,8 @@ import { signal, computed, batch, type Signal } from "../../../lib";
 export const computedCombinations = (count: Signal<number>) =>
   describe("multiple", () => {
     test("should handle multiple options together", () => {
-      // Create signal for test
+      // Tests that multiple computed options can be combined correctly
+      // Verifies that name, keepAlive, onError and onComputed all work together
       const source = signal(0);
       const errorHandler = mock();
       const computedCallback = mock();
@@ -39,7 +40,8 @@ export const computedCombinations = (count: Signal<number>) =>
     });
 
     test("should maintain behavior in batch operations", () => {
-      // Create signals for batch test
+      // Tests that computed options maintain their behavior correctly
+      // when used with batch operations for multiple updates
       const batchSignal = signal(2);
       const computedFn = mock(() => count() + batchSignal());
       const onComputedMock = mock();

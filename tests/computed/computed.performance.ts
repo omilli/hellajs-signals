@@ -4,6 +4,7 @@ import { signal, computed } from "../../lib";
 export const computedPerformance = () =>
   describe("performance", () => {
     test("should handle large numbers of computed values", () => {
+      // This test checks if the computed signal can handle a large number of computed values without performance issues.
       const a = signal(1);
       const computedValues = [];
 
@@ -17,6 +18,7 @@ export const computedPerformance = () =>
     });
 
     test("should handle frequently changing dependencies", () => {
+      // This test checks if the computed signal can handle frequently changing dependencies without performance issues.
       const a = signal(1);
       const myComputed = computed(() => a() * 2);
 
@@ -29,6 +31,7 @@ export const computedPerformance = () =>
     });
 
     test("should properly cleanup when dependencies change rapidly", () => {
+      // This test checks if the computed signal properly cleans up when dependencies change rapidly.
       const a = signal(0);
       const computeFn = mock(() => a() * 2);
       const myComputed = computed(computeFn);

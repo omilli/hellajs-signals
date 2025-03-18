@@ -7,7 +7,7 @@ export const computedAdvanced = (
 ) =>
   describe("advanced", () => {
     test("should handle multiple signal dependencies", () => {
-      // Create a computed value that depends on two signals
+      // Tests that computed signals correctly track and respond to multiple dependencies
       const add = signal(5);
       const sum = computed(() => count() + add());
 
@@ -24,7 +24,8 @@ export const computedAdvanced = (
     });
 
     test("should handle nested computed values", () => {
-      // Create a computed that depends on another computed
+      // Tests that computed signals can depend on other computed signals,
+      // forming a dependency chain that properly updates
       const quadrupled = computed(() => doubled() * 2);
 
       // Verify initial computation works through the chain
@@ -38,7 +39,8 @@ export const computedAdvanced = (
     });
 
     test("should dispose computed values correctly", () => {
-      // Create a signal to help test dependency tracking
+      // Tests that disposed computed signals stop tracking their dependencies
+      // and no longer update when dependencies change
       const testSignal = signal(0);
 
       // Create a computed that depends on both signals
@@ -67,6 +69,8 @@ export const computedAdvanced = (
     });
 
     test("should ensure side effects in computation functions are properly handled", () => {
+      // Tests that side effects in computed functions are executed predictably
+      // Side effects should only run when the computation actually happens
       const a = signal(1);
       const mockSideEffect = mock(() => {});
       const myComputed = computed(() => {
@@ -84,6 +88,8 @@ export const computedAdvanced = (
     });
 
     test("should handle dependencies that change conditionally", () => {
+      // Tests that computed signals correctly handle conditional dependency tracking
+      // Dependencies should be dynamically tracked based on execution paths
       const condition = signal(true);
       const a = signal(1);
       const b = signal(2);

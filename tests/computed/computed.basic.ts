@@ -7,18 +7,19 @@ export const computedBasic = (
 ) =>
   describe("basic", () => {
     test("should compute initial value", () => {
-      // Verify that the computed value correctly reflects its dependencies initially
+      // Verifies that computed signals correctly derive their initial value from dependencies
       expect(doubled()).toBe(2);
     });
 
     test("should update when dependencies change", () => {
-      // Verify that changing a dependency updates the computed value
+      // Verifies that computed values automatically update when their dependencies change
       count.set(2);
       expect(doubled()).toBe(4);
     });
 
     test("should not recompute until accessed", () => {
-      // Mock the compute function to track calls
+      // Tests the lazy evaluation behavior of computed signals
+      // Computed values should only recalculate when they are accessed after a dependency change
       const computeFn = mock(() => count() * 2);
       const doubled = computed(computeFn);
 
@@ -43,6 +44,7 @@ export const computedBasic = (
     });
 
     test("should ensure computed values properly detect and handle reads of stale dependencies", () => {
+      // Tests that changes in nested dependencies properly propagate through the computation chain
       const a = signal(1);
       const b = computed(() => a() * 2);
       const c = computed(() => {

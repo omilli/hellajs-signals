@@ -4,7 +4,8 @@ import { signal, computed, effect, type Signal } from "../../../lib";
 export const computedOnComputed = (count: Signal<number>) =>
   describe("onComputed", () => {
     test("should call onComputed when value is computed", () => {
-      // Create callback mock
+      // Tests that the onComputed callback is called whenever the computed value
+      // is recomputed, with the new value passed as an argument
       const onComputedMock = mock();
 
       // Create computed with callback
@@ -25,7 +26,8 @@ export const computedOnComputed = (count: Signal<number>) =>
     });
 
     test("should call onComputed for keepAlive computed even when not accessed", () => {
-      // Create fresh signals for this test
+      // Tests that onComputed is called for keepAlive computed signals even when
+      // the value hasn't been explicitly accessed after a dependency change
       const count = signal(0);
       const onComputedMock = mock();
 
@@ -46,7 +48,8 @@ export const computedOnComputed = (count: Signal<number>) =>
     });
 
     test("should not track dependencies in onComputed callback", () => {
-      // Create tracking spies
+      // Tests that signal reads inside the onComputed callback don't create
+      // dependency relationships, preventing circular dependencies
       const effectSpy = mock();
       const trackingSpy = signal(0);
 

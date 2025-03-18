@@ -12,7 +12,8 @@ export const computedOptions = (
 ) =>
   describe("options", () => {
     test("should set name for debugging purposes", () => {
-      // Verify the internal name property is set correctly
+      // Tests that the name option is correctly set on the computed signal
+      // This helps with debugging by providing meaningful names in dev tools
       expect((doubled as any)._name).toBe("doubledValue");
     });
 

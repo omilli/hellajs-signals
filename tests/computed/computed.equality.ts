@@ -4,6 +4,7 @@ import { signal, computed } from "../../lib";
 export const computedEquality = () =>
   describe("equality", () => {
     test("should not recompute if the value is the same", () => {
+      // This test checks that the computed signal does not recompute if the value is the same.
       const a = signal(1);
       const computeFn = () => a() % 2;
       const myComputed = computed(computeFn);
@@ -14,6 +15,7 @@ export const computedEquality = () =>
     });
 
     test("should recompute if the value is different", () => {
+      // This test checks that the computed signal recomputes if the value is different.
       const a = signal(1);
       const computeFn = () => a() % 2;
       const myComputed = computed(computeFn);
@@ -24,6 +26,7 @@ export const computedEquality = () =>
     });
 
     test("should handle object/array return values and reference vs value equality", () => {
+      // This test checks that the computed signal handles object/array return values and reference vs value equality correctly.
       const a = signal([1, 2, 3]);
       const computeFn = () => [...a()];
       const myComputed = computed(computeFn);
