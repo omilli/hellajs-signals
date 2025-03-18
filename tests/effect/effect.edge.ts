@@ -1,5 +1,6 @@
 import { describe, test, expect, mock } from "bun:test";
 import { effect, signal } from "../../lib";
+import { effectTick } from "../setup";
 
 export const effectEdgeCases = () =>
   describe("edge", () => {
@@ -18,7 +19,7 @@ export const effectEdgeCases = () =>
       });
 
       // Wait for the timeouts to complete
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      await effectTick();
 
       // The effect should have self-triggered a few times but then stopped
       expect(count()).toBe(3);

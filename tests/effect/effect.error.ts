@@ -1,5 +1,6 @@
 import { describe, test, expect, mock } from "bun:test";
 import { effect, signal, batch } from "../../lib";
+import { effectTick } from "../setup";
 
 export const effectError = () =>
   describe("errors", () => {
@@ -127,7 +128,7 @@ export const effectError = () =>
       });
 
       // Wait for all the timeouts to complete
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      await effectTick();
 
       // Counter should have reached max
       expect(counter()).toBe(maxCount);

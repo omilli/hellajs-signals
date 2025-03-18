@@ -1,5 +1,6 @@
 import { describe, test, expect, mock } from "bun:test";
 import { effect, signal } from "../../lib";
+import { effectTick } from "../setup";
 
 export const effectAsync = () =>
   describe("async", () => {
@@ -25,7 +26,7 @@ export const effectAsync = () =>
       trigger.set(true);
 
       // Wait for async operation
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      await effectTick();
 
       // Error should have been caught by handler
       expect(errorHandler).toHaveBeenCalledTimes(1);
@@ -52,7 +53,7 @@ export const effectAsync = () =>
       expect(executionTracker).toHaveBeenCalledTimes(1);
 
       // Wait for async operations
-      await new Promise((resolve) => setTimeout(resolve, 20));
+      await effectTick(20);
       expect(result()).toBe("step2-0");
 
       // Update trigger
@@ -60,7 +61,7 @@ export const effectAsync = () =>
       expect(executionTracker).toHaveBeenCalledTimes(2);
 
       // Wait for new async chain
-      await new Promise((resolve) => setTimeout(resolve, 20));
+      await effectTick(20);
       expect(result()).toBe("step2-5");
     });
 
@@ -85,7 +86,7 @@ export const effectAsync = () =>
       expect(syncEffect).toHaveBeenCalledTimes(1);
 
       // Wait for async effect
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      await effectTick(10);
       expect(asyncEffect).toHaveBeenCalledTimes(1);
 
       // Update source
@@ -94,7 +95,7 @@ export const effectAsync = () =>
       expect(syncEffect).toHaveBeenCalledTimes(2);
 
       // Wait again for async effect
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      await effectTick(10);
       expect(asyncEffect).toHaveBeenCalledTimes(2);
       expect(asyncEffect).toHaveBeenLastCalledWith(5);
     });

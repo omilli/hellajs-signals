@@ -1,5 +1,6 @@
 import { describe, test, expect } from "bun:test";
 import { effect, signal, batch } from "../../lib";
+import { effectTick } from "../setup";
 
 export const effectRecursive = () =>
   describe("recursive", () => {
@@ -19,7 +20,7 @@ export const effectRecursive = () =>
       });
 
       // Wait for the async operations to complete
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      await effectTick();
 
       // Now all the updates should have happened
       expect(count()).toBe(3);
@@ -47,7 +48,7 @@ export const effectRecursive = () =>
       });
 
       // Wait for all timeouts to complete
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      await effectTick();
 
       // Counter should have reached max
       expect(counter()).toBe(maxCount);

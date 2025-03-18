@@ -1,7 +1,8 @@
 import { describe, test, expect, mock } from "bun:test";
-import { effect, signal, type Signal } from "../../lib";
+import { effect, signal } from "../../lib";
 
-export const effectBasic = (count: Signal<number>) => {
+export const effectBasic = () => {
+  const count = signal(0);
   const effectFn = () => {
     count(); // Create dependency
   };

@@ -1,16 +1,11 @@
 import { describe, test, expect, mock } from "bun:test";
-import {
-  effect,
-  signal,
-  type Signal,
-  type EffectFn,
-  getCurrentEffect,
-} from "../../lib";
+import { effect, signal, type EffectFn, getCurrentEffect } from "../../lib";
 import { ctx } from "../setup";
 
-export const effectAdvanced = (count: Signal<number>) =>
+export const effectAdvanced = () =>
   describe("advanced", () => {
     test("should track bidirectional dependencies correctly", () => {
+      const count = signal(0);
       let effectFn: EffectFn | null = null;
 
       // Create an effect and capture the effect function
@@ -63,6 +58,7 @@ export const effectAdvanced = (count: Signal<number>) =>
     });
 
     test("should properly handle effectDependencies during disposal", () => {
+      const count = signal(0);
       const mockFn = mock();
 
       // Create and immediately dispose an effect
@@ -86,5 +82,41 @@ export const effectAdvanced = (count: Signal<number>) =>
         ([_, deps]) => deps.has(count)
       );
       expect(remainingDeps.length).toBe(0);
+    });
+
+    test("should handle deep reactive data structures", () => {
+      const state = {
+        user: signal({
+          profile: {
+            name: signal("John"),
+            settings: {
+              theme: signal("dark"),
+            },
+          },
+        }),
+      };
+
+      const nameTracker = mock();
+      const themeTracker = mock();
+
+      effect(() => {
+        state.user().profile.name();
+        nameTracker();
+      });
+
+      effect(() => {
+        state.user().profile.settings.theme();
+        themeTracker();
+      });
+
+      // Update deep property
+      state.user().profile.name.set("Jane");
+      expect(nameTracker).toHaveBeenCalledTimes(2);
+      expect(themeTracker).toHaveBeenCalledTimes(1);
+
+      // Update another deep property
+      state.user().profile.settings.theme.set("light");
+      expect(nameTracker).toHaveBeenCalledTimes(2);
+      expect(themeTracker).toHaveBeenCalledTimes(2);
     });
   });

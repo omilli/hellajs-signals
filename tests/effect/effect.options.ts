@@ -1,10 +1,12 @@
 import { describe, test, expect, mock } from "bun:test";
-import { effect, signal, type Signal } from "../../lib";
+import { effect, signal } from "../../lib";
 import { warnSpy } from "../setup";
 
-export const effectOptions = (count: Signal<number>) =>
+export const effectOptions = () =>
   describe("options", () => {
     test("should support the name option for debugging", () => {
+      const count = signal(0);
+
       const dispose = effect(() => count(), { name: "counterEffect" });
 
       // @ts-ignore: Accessing internal property for testing
@@ -14,6 +16,7 @@ export const effectOptions = (count: Signal<number>) =>
     });
 
     test("should support once option to run effect only once", () => {
+      const count = signal(0);
       const mockFn = mock(() => {
         count(); // Create dependency
       });
@@ -28,6 +31,7 @@ export const effectOptions = (count: Signal<number>) =>
     });
 
     test("should support custom error handling", () => {
+      const count = signal(0);
       const errorHandler = mock();
       const testError = new Error("Test error");
 
@@ -46,6 +50,7 @@ export const effectOptions = (count: Signal<number>) =>
     });
 
     test("should support priority option for execution order", () => {
+      const count = signal(0);
       const result = signal("");
 
       // Create two effects with different priorities
@@ -80,6 +85,7 @@ export const effectOptions = (count: Signal<number>) =>
     });
 
     test("should support cleanup registration via onCleanup option", () => {
+      const count = signal(0);
       const cleanupFn = mock();
 
       const dispose = effect(() => count(), {

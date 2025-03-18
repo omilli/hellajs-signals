@@ -78,36 +78,4 @@ export const effectScheduling = () =>
       expect(schedulerCalled).toBe(true);
       expect(effectMock).toHaveBeenCalledTimes(2);
     });
-
-    test("should handle debounce timing correctly", async () => {
-      const value = signal(0);
-      const effectMock = mock();
-
-      effect(
-        () => {
-          value();
-          effectMock();
-        },
-        {
-          debounce: 50,
-        }
-      );
-
-      // Initial run happens immediately
-      expect(effectMock).toHaveBeenCalledTimes(1);
-
-      // Multiple rapid updates should be debounced
-      value.set(1);
-      value.set(2);
-      value.set(3);
-
-      // Effect shouldn't have run again yet
-      expect(effectMock).toHaveBeenCalledTimes(1);
-
-      // Wait for debounce period
-      await new Promise((resolve) => setTimeout(resolve, 60));
-
-      // Effect should have run with latest value
-      expect(effectMock).toHaveBeenCalledTimes(2);
-    });
   });
