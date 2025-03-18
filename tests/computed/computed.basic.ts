@@ -1,5 +1,5 @@
 import { describe, test, expect, mock } from "bun:test";
-import { computed, type Signal, type SignalValue } from "../../lib";
+import { computed, signal, type Signal, type SignalValue } from "../../lib";
 
 export const computedBasic = (
   count: Signal<number>,
@@ -40,5 +40,17 @@ export const computedBasic = (
       // Accessing again without changes shouldn't trigger recomputation
       expect(doubled()).toBe(4);
       expect(computeFn).toHaveBeenCalledTimes(4);
+    });
+
+    test("should ensure computed values properly detect and handle reads of stale dependencies", () => {
+      const a = signal(1);
+      const b = computed(() => a() * 2);
+      const c = computed(() => {
+        return b();
+      });
+
+      expect(c()).toBe(2);
+      a.set(2);
+      expect(c()).toBe(4);
     });
   });

@@ -2,7 +2,7 @@ import { describe, test, expect, mock } from "bun:test";
 import { signal, computed, type Signal } from "../../../lib";
 
 export const computedOnError = (count: Signal<number>) =>
-  describe("errors", () => {
+  describe("onError", () => {
     test("should call onError when computation throws", () => {
       // Create error handler mock
       const errorHandler = mock();

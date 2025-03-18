@@ -1,4 +1,4 @@
-import { describe, test, expect } from "bun:test";
+import { describe, test, expect, mock } from "bun:test";
 import { signal, computed, type SignalValue, type Signal } from "../../lib";
 
 export const computedAdvanced = (
@@ -64,5 +64,43 @@ export const computedAdvanced = (
         // Throwing is also acceptable behavior for disposed values
         expect(e).toBeDefined();
       }
+    });
+
+    test("should ensure side effects in computation functions are properly handled", () => {
+      const a = signal(1);
+      const mockSideEffect = mock(() => {});
+      const myComputed = computed(() => {
+        mockSideEffect();
+        return a() * 2;
+      });
+
+      expect(mockSideEffect).toHaveBeenCalledTimes(1);
+      expect(myComputed()).toBe(2);
+      expect(mockSideEffect).toHaveBeenCalledTimes(2);
+
+      a.set(2);
+      expect(myComputed()).toBe(4);
+      expect(mockSideEffect).toHaveBeenCalledTimes(4);
+    });
+
+    test("should handle dependencies that change conditionally", () => {
+      const condition = signal(true);
+      const a = signal(1);
+      const b = signal(2);
+
+      const myComputed = computed(() => {
+        return condition() ? a() : b();
+      });
+
+      expect(myComputed()).toBe(1);
+
+      condition.set(false);
+      expect(myComputed()).toBe(2);
+
+      a.set(5);
+      expect(myComputed()).toBe(2);
+
+      b.set(10);
+      expect(myComputed()).toBe(10);
     });
   });

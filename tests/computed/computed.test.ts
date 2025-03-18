@@ -3,6 +3,9 @@ import { computedBasic } from "./computed.basic";
 import { computedAdvanced } from "./computed.advanced";
 import { computedOptions } from "./computed.options";
 import { computed, signal } from "../../lib";
+import { computedEquality } from "./computed.equality";
+import { computedAsync } from "./computed.async";
+import { computedPerformance } from "./computed.performance";
 
 // Create shared test fixtures used across all test suites
 const count = signal(1);
@@ -13,8 +16,10 @@ describe("computed", () => {
   // Reset count to initial value before each test to ensure consistent test environment
   beforeEach(() => count.set(1));
 
-  // Run test suites for different aspects of computed functionality
-  computedBasic(count, doubled);
   computedAdvanced(count, doubled);
+  computedAsync();
+  computedBasic(count, doubled);
+  computedEquality();
   computedOptions(count, doubled);
+  computedPerformance();
 });
