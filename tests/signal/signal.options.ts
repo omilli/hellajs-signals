@@ -15,7 +15,11 @@ export const signalOptions = () =>
       // Only allow even numbers
       const evenOnly = signal(0, {
         name: "evenOnly",
-        validators: [(value) => value % 2 === 0],
+        validators: [
+          (value) => {
+            return value % 2 === 0 ? value : undefined;
+          },
+        ],
       });
 
       // Valid update
@@ -65,7 +69,14 @@ export const signalOptions = () =>
       // Must be positive and even
       const count = signal(2, {
         name: "validate",
-        validators: [(value) => value > 0, (value) => value % 2 === 0],
+        validators: [
+          (value) => {
+            return value > 0 ? value : undefined;
+          },
+          (value) => {
+            return value % 2 === 0 ? value : undefined;
+          },
+        ],
       });
 
       // Valid (positive and even)
@@ -85,7 +96,11 @@ export const signalOptions = () =>
       // Only allow even numbers
       const evenOnly = signal(0, {
         name: "validateUpdate",
-        validators: [(value) => value % 2 === 0],
+        validators: [
+          (value) => {
+            return value % 2 === 0 ? value : undefined;
+          },
+        ],
       });
 
       // Valid update
@@ -141,11 +156,13 @@ export const signalOptions = () =>
     test("should support complex validation rules", () => {
       // String validator that enforces email format
       const emailValidator = (value: string) => {
-        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ? value : undefined;
       };
 
       // String validator that enforces minimum length
-      const minLengthValidator = (value: string) => value.length >= 6; // Changed from 5 to 6
+      const minLengthValidator = (value: string) => {
+        return value.length >= 6 ? value : undefined;
+      };
 
       const email = signal("test@example.com", {
         name: "email",
@@ -173,11 +190,16 @@ export const signalOptions = () =>
       }
 
       // Only allow adult users
-      const ageValidator = (user: User) => user.age >= 18;
+      const ageValidator = (user: User) => {
+        return user.age >= 18 ? user : undefined;
+      };
 
       // Only allow users with valid names
-      const nameValidator = (user: User) =>
-        user.name.trim().length > 0 && user.name.length <= 50;
+      const nameValidator = (user: User) => {
+        return user.name.trim().length > 0 && user.name.length <= 50
+          ? user
+          : undefined;
+      };
 
       const user = signal<User>(
         { id: 1, name: "John", age: 25 },
