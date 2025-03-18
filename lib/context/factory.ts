@@ -1,5 +1,4 @@
 import type {
-	CleanupFunction,
 	ComputedFn,
 	ComputedOptions,
 	EffectFn,
@@ -51,9 +50,9 @@ function createContext(dependencies: ReactiveContext, state: ReactiveState) {
 			});
 		},
 
-		effect: (fn: EffectFn, options?: EffectOptions): CleanupFunction => {
+		effect: (fn: EffectFn, options?: EffectOptions): EffectFn => {
 			return withContext(context, () => {
-				const cleanup = dependencies.effect(fn, options);
+				const cleanup = dependencies.effect(fn, options) as EffectFn;
 				const wrappedCleanup = () => {
 					state.effects.delete(cleanup);
 					return cleanup();
@@ -61,19 +60,22 @@ function createContext(dependencies: ReactiveContext, state: ReactiveState) {
 
 				state.effects.add(cleanup);
 
-				Object.getOwnPropertyNames(cleanup).forEach((prop) => {
+				for (const prop of Object.getOwnPropertyNames(cleanup)) {
 					if (prop !== "name" && prop !== "length") {
 						Object.defineProperty(
 							wrappedCleanup,
 							prop,
-							Object.getOwnPropertyDescriptor(cleanup, prop)!,
+							Object.getOwnPropertyDescriptor(
+								cleanup,
+								prop,
+							) as PropertyDescriptor,
 						);
 					}
-				});
+				}
 
-				if ((cleanup as any)._effect) {
+				if (cleanup._effect) {
 					Object.defineProperty(wrappedCleanup, "_effect", {
-						value: (cleanup as any)._effect,
+						value: cleanup._effect,
 					});
 				}
 

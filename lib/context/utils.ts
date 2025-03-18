@@ -48,7 +48,9 @@ export function withContext<T>(ctx: ReactiveContext, fn: () => T): T {
  * Gets the default context, creating it if needed
  */
 export function getDefaultContext(): ReactiveContext {
-	const globalObj = getGlobalThis();
+	const globalObj = getGlobalThis() as unknown as {
+		[DEFAULT_CONTEXT_KEY]: ReactiveContext;
+	};
 
 	// Create default context if it doesn't exist
 	if (!globalObj[DEFAULT_CONTEXT_KEY]) {
@@ -74,7 +76,7 @@ export function registerContextState(
 /**
  * Helper to detect the global object across environments
  */
-function getGlobalThis(): any {
+function getGlobalThis(): Window | typeof globalThis {
 	if (typeof globalThis !== "undefined") return globalThis;
 	if (typeof window !== "undefined") return window;
 	if (typeof global !== "undefined") return global;

@@ -10,8 +10,8 @@ export function scheduleEffects(
 ): void {
 	// Sort by priority (if available)
 	const sorted = [...effects].sort((a, b) => {
-		const priorityA = (a as any)._priority || 0;
-		const priorityB = (b as any)._priority || 0;
+		const priorityA = a._priority || 0;
+		const priorityB = b._priority || 0;
 		return priorityB - priorityA; // Higher priority runs first
 	});
 
@@ -71,7 +71,7 @@ export function flushEffects(state: ReactiveState): void {
 
 	// Sort by priority (higher runs first)
 	const effectsToRun = [...state.pendingNotifications].sort((a, b) => {
-		return ((b as any)._priority || 0) - ((a as any)._priority || 0);
+		return (b._priority || 0) - (a._priority || 0);
 	});
 
 	// Clear pending notifications before running effects to avoid cycles
@@ -80,7 +80,7 @@ export function flushEffects(state: ReactiveState): void {
 
 	// Run each effect, skipping disposed ones
 	for (const effect of effectsToRun) {
-		if (!(effect as any)._disposed) {
+		if (!effect._disposed) {
 			effect();
 		}
 	}

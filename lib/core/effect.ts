@@ -1,21 +1,18 @@
 import { getCurrentContext } from "../context";
-import type { CleanupFunction, EffectFn, EffectOptions } from "../types";
+import type { EffectFn, EffectOptions } from "../types";
 import { setActiveTracker } from "../utils";
 import { unsubscribeDependencies } from "../utils/dependency";
 
 // Track parent-child relationships between effects
-const parentChildEffectsMap = new WeakMap<
-	CleanupFunction,
-	Set<CleanupFunction>
->();
+const parentChildEffectsMap = new WeakMap<EffectFn, Set<EffectFn>>();
 // Keep track of the current executing parent effect
-let currentExecutingEffect: CleanupFunction | null = null;
+let currentExecutingEffect: EffectFn | null = null;
 
 /**
  * Creates an effect that runs when its dependencies change
  */
 
-export function effect(fn: EffectFn, options?: EffectOptions): CleanupFunction {
+export function effect(fn: EffectFn, options?: EffectOptions): EffectFn {
 	const ctx = getCurrentContext();
 	const { name, scheduler, once, debounce, onError, onCleanup } = options || {};
 
@@ -35,9 +32,9 @@ export function effect(fn: EffectFn, options?: EffectOptions): CleanupFunction {
 	};
 
 	// Create an observer function
-	const observer = () => {
+	const observer: EffectFn = () => {
 		// Prevent infinite recursion with execution context tracking
-		if ((observer as any)._disposed) {
+		if (observer._disposed) {
 			return;
 		}
 
@@ -140,7 +137,7 @@ export function effect(fn: EffectFn, options?: EffectOptions): CleanupFunction {
 		}
 
 		// Mark as disposed immediately to prevent any future executions
-		(observer as any)._disposed = true;
+		observer._disposed = true;
 
 		// Dispose all child effects first
 		const childEffects = parentChildEffectsMap.get(disposeEffect);
@@ -162,10 +159,7 @@ export function effect(fn: EffectFn, options?: EffectOptions): CleanupFunction {
 
 		// Remove from pending notifications if it's queued
 		const pendingIndex = ctx.pendingNotifications.findIndex(
-			(e) =>
-				e === observer ||
-				(e as any)._effect === observer ||
-				(observer as any)._effect === e,
+			(e) => e === observer || e._effect === observer || observer._effect === e,
 		);
 
 		if (pendingIndex !== -1) {

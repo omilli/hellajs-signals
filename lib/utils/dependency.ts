@@ -1,5 +1,5 @@
 import { getCurrentContext } from "../context";
-import type { EffectFn, ReactiveState, SignalBase } from "../types";
+import type { EffectFn, ReactiveState, Signal, SignalBase } from "../types";
 import { scheduleEffects } from "./effect";
 import { getActiveTracker, hasActiveTracker } from "./tracker";
 
@@ -9,7 +9,7 @@ import { getActiveTracker, hasActiveTracker } from "./tracker";
 export function addDependency(
 	state: ReactiveState,
 	effect: EffectFn,
-	source: any,
+	source: unknown,
 ): void {
 	// Add source to effect's dependencies
 	const deps = state.effectDependencies.get(effect) || new Set();
@@ -89,14 +89,14 @@ export function unsubscribeDependencies(effect: EffectFn) {
 	const ctx = getCurrentContext();
 
 	// Get dependencies from both context-specific storage
-	const ctxDeps = ctx.effectDependencies.get(effect);
+	const ctxDeps = ctx.effectDependencies.get(effect) as Set<Signal<unknown>>;
 
 	// Thorough cleanup of dependency sets
-	const allDeps = new Set([...(ctxDeps || [])]);
+	const allDeps = new Set(ctxDeps);
 
 	// For each signal this effect depends on, remove the effect from its subscribers
 	for (const signal of allDeps) {
-		if (signal && signal._deps) {
+		if (signal?._deps) {
 			const subscribers = signal._deps;
 			// Create array of refs to remove so we can modify while iterating
 			const refsToRemove = [];
@@ -107,8 +107,8 @@ export function unsubscribeDependencies(effect: EffectFn) {
 				if (
 					!subscribedEffect ||
 					subscribedEffect === effect ||
-					(subscribedEffect as any)._effect === effect ||
-					(effect as any)._effect === subscribedEffect
+					subscribedEffect._effect === effect ||
+					effect._effect === subscribedEffect
 				) {
 					refsToRemove.push(weakRef);
 				}

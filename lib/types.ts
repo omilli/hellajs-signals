@@ -29,8 +29,9 @@ export interface EffectFn {
 	_hasRun?: boolean;
 	_name?: string;
 	_priority?: number;
+	_disposed?: boolean; // Add this property
+	_effect?: EffectFn; // This property is also used in your code
 }
-
 export interface EffectOptions {
 	name?: string; // For debugging and DevTools
 	scheduler?: (run: () => void) => void; // Custom scheduling
@@ -38,7 +39,6 @@ export interface EffectOptions {
 	once?: boolean; // Run once and dispose automatically
 	debounce?: number; // Wait time before executing
 	immediate?: boolean; // Whether to run effect immediately (default: true)
-
 	onError?: (error: Error) => void; // Custom error handling
 	onCleanup?: () => void; // Alternative cleanup registration
 }
@@ -52,11 +52,9 @@ export interface ComputedOptions<T> {
 	onComputed?: (value: T) => void; // Callback when value is computed
 }
 
-export type CleanupFunction = () => void;
-
 export interface ReactiveContext {
 	signal: <T>(initialValue: T, options?: SignalOptions<T>) => Signal<T>;
-	effect: (fn: EffectFn, options?: EffectOptions) => CleanupFunction;
+	effect: (fn: EffectFn, options?: EffectOptions) => EffectFn;
 	computed: <T>(
 		deriveFn: ComputedFn<T>,
 		options?: ComputedOptions<T>,
@@ -73,8 +71,8 @@ export interface ReactiveState {
 	pendingNotifications: EffectFn[];
 	pendingRegistry: Set<EffectFn>;
 	executionContext: EffectFn[];
-	effectDependencies: Map<EffectFn, Set<any>>;
-	effects: Set<CleanupFunction>;
-	signals: WeakSet<any>;
+	effectDependencies: Map<EffectFn, Set<unknown>>;
+	effects: Set<EffectFn>;
+	signals: WeakSet<WeakKey>;
 	batchDepth: number; // Add batchDepth to track batching state per context
 }
