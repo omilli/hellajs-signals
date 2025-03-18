@@ -35,7 +35,7 @@ export function signal<T>(value: T, options?: SignalOptions<T>): Signal<T> {
   }) as Signal<T>;
 
   // Did pass validation of all validators
-  const didValidate = <V extends T>(newValue: V): boolean => {
+  const didValidate = (newValue: T): boolean => {
     if (validators.length > 0 && !validators.every((v) => v(newValue))) {
       console.warn(`Validation failed: "${name || "unnamed"}"`, newValue);
       return false;
@@ -44,7 +44,7 @@ export function signal<T>(value: T, options?: SignalOptions<T>): Signal<T> {
   };
 
   // Try to run the onSet callback
-  const tryOnSet = <V extends T>(newValue: V) => {
+  const tryOnSet = (newValue: T) => {
     if (options?.onSet) {
       try {
         options.onSet(newValue, value);
@@ -55,7 +55,7 @@ export function signal<T>(value: T, options?: SignalOptions<T>): Signal<T> {
   };
 
   // Update the value and notify subscribers
-  const update = <V extends T>(newValue: V) => {
+  const update = (newValue: T) => {
     tryOnSet(newValue);
     value = newValue;
     queueEffects(ctx, subscribers);

@@ -90,4 +90,69 @@ export const signalAdvanced = () =>
       outer.set(signal(2));
       expect(mockFn).toHaveBeenCalledTimes(3);
     });
+
+    test("should handle complex objects", () => {
+      const complexObject = {
+        id: 1,
+        name: "test",
+        nested: {
+          value: 42,
+          array: [1, 2, 3],
+        },
+      };
+      const objSignal = signal(complexObject);
+
+      expect(objSignal().nested.value).toBe(42);
+
+      objSignal.set({
+        ...complexObject,
+        nested: { ...complexObject.nested, value: 100 },
+      });
+
+      expect(objSignal().nested.value).toBe(100);
+    });
+
+    test("should handle nested signals", () => {
+      const inner = signal({ count: 0 });
+      const outer = signal({ inner });
+      const effectMock = mock();
+
+      effect(() => {
+        // Access deeply nested signal value
+        outer().inner().count;
+        effectMock();
+      });
+
+      expect(effectMock).toHaveBeenCalledTimes(1);
+
+      // Update the nested value
+      inner.set({ count: 1 });
+      expect(effectMock).toHaveBeenCalledTimes(2);
+
+      // Update the outer object with the same inner reference
+      outer.set({ inner });
+      expect(effectMock).toHaveBeenCalledTimes(3);
+    });
+
+    test("should handle circular references", () => {
+      interface CircularObj {
+        name: string;
+        self?: CircularObj;
+      }
+
+      const obj: CircularObj = { name: "circular" };
+      obj.self = obj; // Create circular reference
+
+      const circularSignal = signal(obj);
+      expect(circularSignal().name).toBe("circular");
+      expect(circularSignal().self).toBe(circularSignal());
+
+      // Update with new circular object
+      const newObj: CircularObj = { name: "updated" };
+      newObj.self = newObj;
+
+      circularSignal.set(newObj);
+      expect(circularSignal().name).toBe("updated");
+      expect(circularSignal().self).toBe(circularSignal());
+    });
   });
