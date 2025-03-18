@@ -7,13 +7,12 @@ import {
   type Signal,
   type SignalValue,
 } from "../../lib";
-import { testCategories } from "../setup";
 
 export const computedOptions = (
   count: Signal<number>,
   doubled: SignalValue<number>
 ) =>
-  describe(testCategories.options, () => {
+  describe("options", () => {
     test("should set name for debugging purposes", () => {
       // Access internal property to verify name was set
       expect((doubled as any)._name).toBe("doubledValue");

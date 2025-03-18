@@ -1,12 +1,11 @@
 import { describe, test, expect } from "bun:test";
 import { signal, computed, type SignalValue, type Signal } from "../../lib";
-import { testCategories } from "../setup";
 
 export const computedAdvanced = (
   count: Signal<number>,
   doubled: SignalValue<number>
 ) =>
-  describe(testCategories.advanced, () => {
+  describe("advanced", () => {
     test("should handle multiple signal dependencies", () => {
       const add = signal(5);
       const sum = computed(() => count() + add());

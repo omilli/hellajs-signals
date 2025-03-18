@@ -1,9 +1,8 @@
 import { describe, test, expect, mock } from "bun:test";
 import { signal, effect } from "../../lib";
-import { testCategories } from "../setup";
 
 export const signalMemory = () =>
-  describe(testCategories.memory, () => {
+  describe("memory", () => {
     test("should clean up WeakRef subscribers when effects are disposed", () => {
       const testSignal = signal(0);
 

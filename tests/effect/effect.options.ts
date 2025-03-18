@@ -1,9 +1,9 @@
 import { describe, test, expect, mock } from "bun:test";
 import { effect, signal, type Signal } from "../../lib";
-import { testCategories, warnSpy } from "../setup";
+import { warnSpy } from "../setup";
 
 export const effectOptions = (count: Signal<number>) =>
-  describe(testCategories.options, () => {
+  describe("options", () => {
     test("should support the name option for debugging", () => {
       const dispose = effect(() => count(), { name: "counterEffect" });
 

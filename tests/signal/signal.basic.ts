@@ -1,6 +1,5 @@
 import { describe, test, expect } from "bun:test";
 import { signal } from "../../lib";
-import { testCategories } from "../setup";
 
 const obj = { name: "test", value: 42 };
 const objUpdated = { name: "updated", value: 100 };
@@ -8,7 +7,7 @@ const arr = [1, 2, 3];
 const arrUpdated = [4, 5, 6];
 
 export const signalBasic = () =>
-  describe(testCategories.basic, () => {
+  describe("basic", () => {
     test("should wotk with numbers", () => {
       const numSignal = signal(42);
       expect(numSignal()).toBe(42);

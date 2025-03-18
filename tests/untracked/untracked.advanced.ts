@@ -1,9 +1,8 @@
 import { describe, test, expect, mock } from "bun:test";
 import { signal, effect, computed, untracked, type Signal } from "../../lib";
-import { testCategories } from "../setup";
 
 export const untrackedAdvanced = (count: Signal<number>) =>
-  describe(testCategories.advanced, () => {
+  describe("advanced", () => {
     test("should work with computed values", () => {
       const doubled = computed(() => count() * 2);
       const mockFn = mock();

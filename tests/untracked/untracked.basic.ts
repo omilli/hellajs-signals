@@ -1,9 +1,8 @@
 import { describe, test, expect, mock } from "bun:test";
 import { effect, untracked, type Signal } from "../../lib";
-import { testCategories } from "../setup";
 
 export const untrackedBasic = (count: Signal<number>) =>
-  describe(testCategories.basic, () => {
+  describe("basic", () => {
     test("should access signal without creating dependency", () => {
       const mockFn = mock();
 

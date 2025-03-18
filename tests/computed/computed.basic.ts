@@ -1,12 +1,11 @@
 import { describe, test, expect, mock } from "bun:test";
 import { computed, type Signal, type SignalValue } from "../../lib";
-import { testCategories } from "../setup";
 
 export const computedBasic = (
   count: Signal<number>,
   doubled: SignalValue<number>
 ) =>
-  describe(testCategories.basic, () => {
+  describe("basic", () => {
     test("should compute initial value", () => {
       expect(doubled()).toBe(2);
     });

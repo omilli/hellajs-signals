@@ -1,9 +1,9 @@
 import { describe, test, expect, mock } from "bun:test";
 import { signal } from "../../lib";
-import { testCategories, warnSpy, errorSpy } from "../setup";
+import { warnSpy, errorSpy } from "../setup";
 
 export const signalOptions = () =>
-  describe(testCategories.options, () => {
+  describe("options", () => {
     test("should support name option for debugging", () => {
       const count = signal(0, { name: "count" });
       // @ts-ignore: Accessing internal property for testing
@@ -86,7 +86,7 @@ export const signalOptions = () =>
       expect(count()).toBe(4);
     });
 
-    test("should use update method with validators", () => {
+    test("should support update method with validators", () => {
       // Only allow even numbers
       const evenOnly = signal(0, {
         name: "validateUpdate",

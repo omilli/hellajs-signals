@@ -1,13 +1,12 @@
 import { describe, test, expect, mock } from "bun:test";
 import { effect, signal, type Signal } from "../../lib";
-import { testCategories } from "../setup";
 
 export const effectBasic = (count: Signal<number>) => {
   const effectFn = () => {
     count(); // Create dependency
   };
 
-  return describe(testCategories.basic, () => {
+  return describe("basic", () => {
     test("should run effect immediately", () => {
       const mockFn = mock();
       const dispose = effect(mockFn);

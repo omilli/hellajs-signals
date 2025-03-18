@@ -1,9 +1,8 @@
 import { describe, test, expect, mock } from "bun:test";
 import { effect, batch, type Signal } from "../../lib";
-import { testCategories } from "../setup";
 
 export const batchBasic = (count: Signal<number>) =>
-  describe(testCategories.basic, () => {
+  describe("basic", () => {
     test("should batch multiple updates", () => {
       const mockFn = mock();
 

@@ -1,9 +1,22 @@
 import { describe, test, expect, mock } from "bun:test";
 import { effect, signal, type Signal } from "../../lib";
-import { testCategories } from "../setup";
 
 export const signalAdvanced = () =>
-  describe(testCategories.advanced, () => {
+  describe("advanced", () => {
+    test("should allow signals of signals", () => {
+      const inner = signal(0);
+      const outer = signal(inner);
+
+      expect(outer()()).toBe(0);
+
+      inner.set(1);
+      expect(outer()()).toBe(1);
+
+      const newInner = signal(2);
+      outer.set(newInner);
+      expect(outer()()).toBe(2);
+    });
+
     test("should handle signals created within effects", () => {
       const condition = signal(true);
       let dynamicSignal!: Signal<number>;
@@ -37,18 +50,23 @@ export const signalAdvanced = () =>
       expect(count()).toBe(200);
     });
 
-    test("should allow signals of signals", () => {
-      const inner = signal(0);
-      const outer = signal(inner);
+    test("should not notify subscribers when value doesn't change", () => {
+      const obj = { id: 1 };
+      const objSignal = signal(obj);
+      const mockFn = mock();
 
-      expect(outer()()).toBe(0);
+      effect(() => {
+        objSignal();
+        mockFn();
+      });
 
-      inner.set(1);
-      expect(outer()()).toBe(1);
+      expect(mockFn).toHaveBeenCalledTimes(1);
 
-      const newInner = signal(2);
-      outer.set(newInner);
-      expect(outer()()).toBe(2);
+      // Set to the same object reference
+      objSignal.set(obj);
+
+      // Effect should not be triggered again
+      expect(mockFn).toHaveBeenCalledTimes(1);
     });
 
     test("should track dependencies correctly with nested signals", () => {
@@ -71,24 +89,5 @@ export const signalAdvanced = () =>
       // Update outer signal to a new signal should trigger effect
       outer.set(signal(2));
       expect(mockFn).toHaveBeenCalledTimes(3);
-    });
-
-    test("should not notify subscribers when value doesn't change", () => {
-      const obj = { id: 1 };
-      const objSignal = signal(obj);
-      const mockFn = mock();
-
-      effect(() => {
-        objSignal();
-        mockFn();
-      });
-
-      expect(mockFn).toHaveBeenCalledTimes(1);
-
-      // Set to the same object reference
-      objSignal.set(obj);
-
-      // Effect should not be triggered again
-      expect(mockFn).toHaveBeenCalledTimes(1);
     });
   });
