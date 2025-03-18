@@ -1,11 +1,11 @@
-import type { EffectFn, ReactiveState } from "../types";
+import type { ContextState, EffectFn } from "../types";
 import { NOT_TRACKING } from "./tracker";
 
 /**
  * Schedule effects to run with proper priority handling
  */
 export function scheduleEffects(
-	state: ReactiveState,
+	state: ContextState,
 	effects: EffectFn[],
 ): void {
 	// Sort by priority (if available)
@@ -33,7 +33,7 @@ export function scheduleEffects(
  * Schedule effects to run after current operations complete
  */
 export function queueEffects(
-	state: ReactiveState,
+	state: ContextState,
 	subscribers: Set<WeakRef<EffectFn>>,
 ): void {
 	if (subscribers.size === 0) return;
@@ -66,7 +66,7 @@ export function queueEffects(
 /**
  * Process all queued effects
  */
-export function flushEffects(state: ReactiveState): void {
+export function flushEffects(state: ContextState): void {
 	if (state.pendingNotifications.length === 0) return;
 
 	// Sort by priority (higher runs first)
@@ -90,7 +90,7 @@ export function flushEffects(state: ReactiveState): void {
  * Gets the currently active effect if there is one
  * @returns The current effect function or null if not in an effect
  */
-export function getCurrentEffect(state: ReactiveState): EffectFn | null {
+export function getCurrentEffect(state: ContextState): EffectFn | null {
 	return state.activeTracker === NOT_TRACKING ||
 		typeof state.activeTracker === "symbol"
 		? null

@@ -1,10 +1,10 @@
 import type {
 	ComputedFn,
 	ComputedOptions,
+	ContextState,
 	EffectFn,
 	EffectOptions,
 	ReactiveContext,
-	ReactiveState,
 	Signal,
 	SignalOptions,
 	SignalValue,
@@ -32,7 +32,7 @@ export function createReactiveContext(
 	return context;
 }
 
-function createContext(dependencies: ReactiveContext, state: ReactiveState) {
+function createContext(dependencies: ReactiveContext, state: ContextState) {
 	/**
 	 * Creates a reactive context for managing signals and effects.
 	 *

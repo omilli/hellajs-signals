@@ -1,10 +1,10 @@
-import type { EffectFn, ReactiveState } from "../types";
+import type { ContextState, EffectFn } from "../types";
 import { NOT_TRACKING } from "../utils/tracker";
 
 /**
  * Create a new reactive state object with default values
  */
-export function createReactiveState(id: string): ReactiveState {
+export function createReactiveState(id: string): ContextState {
 	return {
 		id,
 		activeTracker: NOT_TRACKING,
@@ -21,19 +21,19 @@ export function createReactiveState(id: string): ReactiveState {
 /**
  * Track the currently active reactive state for dependency tracking
  */
-let currentReactiveState: ReactiveState | null = null;
+let currentReactiveState: ContextState | null = null;
 
 /**
  * Set the currently active reactive state
  */
-export function setCurrentState(state: ReactiveState | null): void {
+export function setCurrentState(state: ContextState | null): void {
 	currentReactiveState = state;
 }
 
 /**
  * Run a function with a specific reactive state as the active state
  */
-export function withState<T>(state: ReactiveState, fn: () => T): T {
+export function withState<T>(state: ContextState, fn: () => T): T {
 	const prevState = currentReactiveState;
 	currentReactiveState = state;
 	try {

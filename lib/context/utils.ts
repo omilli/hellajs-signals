@@ -1,9 +1,9 @@
-import type { ReactiveContext, ReactiveState } from "../types";
+import type { ContextState, ReactiveContext } from "../types";
 import { createReactiveState, withState } from "../utils";
 import { createDefaultContext } from "./bridge";
 
 // Track context states using WeakMap for proper garbage collection
-const contextStates = new WeakMap<ReactiveContext, ReactiveState>();
+const contextStates = new WeakMap<ReactiveContext, ContextState>();
 
 // Track the current context
 let currentContext: ReactiveContext | null = null;
@@ -14,7 +14,7 @@ const DEFAULT_CONTEXT_KEY = Symbol.for("reactiveContext");
 /**
  * Get the currently active context's state
  */
-export function getCurrentContext(): ReactiveState {
+export function getCurrentContext(): ContextState {
 	const ctx = currentContext || getDefaultContext();
 	const state = contextStates.get(ctx);
 	if (!state) {
@@ -68,7 +68,7 @@ export function getDefaultContext(): ReactiveContext {
  */
 export function registerContextState(
 	context: ReactiveContext,
-	state: ReactiveState,
+	state: ContextState,
 ): void {
 	contextStates.set(context, state);
 }

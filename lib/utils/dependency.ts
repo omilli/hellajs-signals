@@ -1,5 +1,5 @@
 import { getCurrentContext } from "../context";
-import type { EffectFn, ReactiveState, Signal, SignalBase } from "../types";
+import type { ContextState, EffectFn, Signal, SignalBase } from "../types";
 import { scheduleEffects } from "./effect";
 import { getActiveTracker, hasActiveTracker } from "./tracker";
 
@@ -7,7 +7,7 @@ import { getActiveTracker, hasActiveTracker } from "./tracker";
  * Add a dependency relationship between an effect and a reactive source
  */
 export function addDependency(
-	state: ReactiveState,
+	state: ContextState,
 	effect: EffectFn,
 	source: unknown,
 ): void {
@@ -21,10 +21,7 @@ export function addDependency(
  * Track the current effect as dependent on a signal
  * This is called when a signal is read within an effect
  */
-export function trackDependency(
-	state: ReactiveState,
-	signal: SignalBase,
-): void {
+export function trackDependency(state: ContextState, signal: SignalBase): void {
 	// Only track if there's an active effect
 	if (!hasActiveTracker(state)) return;
 
@@ -43,7 +40,7 @@ export function trackDependency(
  * Notify all effects that depend on a changed signal
  */
 export function notifyDependents(
-	state: ReactiveState,
+	state: ContextState,
 	signal: SignalBase,
 ): void {
 	// Early return if no pending queue is needed
