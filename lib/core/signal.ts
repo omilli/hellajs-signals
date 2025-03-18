@@ -4,7 +4,7 @@ import { getActiveTracker, queueEffects } from "../utils";
 
 /**
  * Creates a new signal with the given initial value and options.
- * @param initialValue - The initial value of the signal.
+ * @param value - The initial value of the signal.
  * @param options - Additional options for the signal.
  * @returns The created signal.
  */
