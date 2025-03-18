@@ -15,6 +15,8 @@ export function createReactiveState(id: string): ContextState {
 		effects: new Set(),
 		signals: new WeakSet(),
 		batchDepth: 0,
+		currentExecutingEffect: null,
+		parentChildEffectsMap: new WeakMap(),
 	};
 }
 

@@ -91,4 +91,12 @@ export interface ContextState {
 	 * The current batch depth.
 	 */
 	batchDepth: number;
+	/**
+	 * Currently executing parent effect
+	 */
+	currentExecutingEffect: EffectFn | null;
+	/**
+	 * Map of parent effects to their child effects
+	 */
+	parentChildEffectsMap: WeakMap<EffectFn, Set<EffectFn>>;
 }
