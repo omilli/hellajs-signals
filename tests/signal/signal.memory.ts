@@ -4,6 +4,7 @@ import { tick } from "../setup";
 
 export const signalMemory = () =>
   describe("memory", () => {
+    // Tests that disposed effects are properly removed from signal subscriptions
     test("should clean up WeakRef subscribers when effects are disposed", () => {
       const testSignal = signal(0);
 
@@ -15,7 +16,6 @@ export const signalMemory = () =>
         dispose();
       }
 
-      // Hard to test WeakRef directly, but we can verify the signal still works
       const mockFn = mock();
       const dispose = effect(() => {
         testSignal();
@@ -23,37 +23,35 @@ export const signalMemory = () =>
       });
 
       testSignal.set(1);
-      expect(mockFn).toHaveBeenCalledTimes(2);
+      expect(mockFn).toHaveBeenCalledTimes(2); // Initial run + update
 
       dispose();
     });
 
+    // Tests if signals can be garbage collected when no longer referenced
+    // This is difficult to test deterministically as GC is not directly controllable
     test("should allow signals to be garbage collected", async () => {
       // This test is more conceptual since we can't directly control GC
       let tempSignal = signal(0);
-      new WeakRef(tempSignal);
+      new WeakRef(tempSignal); // Create weak reference to track potential GC
 
-      // Remove the reference
-      tempSignal = null as any;
+      tempSignal = null as any; // Remove strong reference to allow GC
 
-      // Force garbage collection if available (only works if your runtime supports it)
       if (global.gc) {
-        global.gc();
+        global.gc(); // Manually trigger GC if available
       }
 
-      // Allow some time for potential GC
       await new Promise((resolve) => setTimeout(resolve, 0));
 
-      // We can't reliably assert on weakRef.deref() being null since GC isn't guaranteed
-      // but at least we've proven the code path works
       expect(true).toBe(true);
     });
 
+    // Tests that the system can handle a large number of signals without memory issues
     test("should handle large numbers of signals without memory issues", async () => {
       const COUNT = 1000;
       const signals = [];
 
-      // Create a large number of signals
+      // Create many signals
       for (let i = 0; i < COUNT; i++) {
         signals.push(signal(i));
       }
@@ -63,32 +61,32 @@ export const signalMemory = () =>
         signals[i].set(i + 1);
       }
 
-      // Verify updates worked
+      // Verify all signals updated correctly
       for (let i = 0; i < COUNT; i++) {
         expect(signals[i]()).toBe(i + 1);
       }
 
-      // Force GC if possible and check memory is released
+      // Clear references to allow GC
       signals.length = 0;
       if (global.gc) {
         global.gc();
       }
       await tick(0);
 
-      // The test passes if we get here without running out of memory
       expect(true).toBe(true);
     });
 
+    // Tests cleanup of effects when container objects are garbage collected
     test("should clean up effects when signal is no longer referenced", async () => {
-      // Use a class to encapsulate a signal and its dependent effect
       class SignalContainer {
         signal;
         effectDispose;
 
         constructor(value: number) {
           this.signal = signal(value);
+          // Create an effect that depends on the signal
           this.effectDispose = effect(() => {
-            this.signal(); // Create dependency
+            this.signal();
           });
         }
 
@@ -97,57 +95,46 @@ export const signalMemory = () =>
         }
       }
 
-      // Create and immediately dispose to test cleanup
       let container: SignalContainer | null = new SignalContainer(42);
-      new WeakRef(container.signal);
+      new WeakRef(container.signal); // Track signal with weak reference
 
-      // Explicitly dispose and remove reference
-      container.dispose();
-      container = null;
+      container.dispose(); // Properly dispose effect
+      container = null; // Remove reference to allow GC
 
-      // Force GC if available
       if (global.gc) {
         global.gc();
       }
 
-      // Allow some time for potential GC
       await tick(0);
 
-      // Check if the WeakRef is cleared (only if GC ran)
-      // This test is more conceptual, not always deterministic
       expect(true).toBe(true);
     });
 
+    // Tests that signal dependencies don't create memory leaks
     test("should not leak memory with signal dependencies", async () => {
-      // Create a signal with many dependencies
       const mainSignal = signal(0);
       const weakRefs = [];
 
-      // Create 100 effects that depend on the signal
+      // Create many effects that depend on the signal but have no strong references
       for (let i = 0; i < 100; i++) {
         const effectFn = effect(() => {
-          mainSignal(); // Create dependency
+          mainSignal();
         });
 
         weakRefs.push(new WeakRef(effectFn));
 
-        // Immediately dispose the effect
-        effectFn();
+        effectFn(); // Execute effect function directly
       }
 
-      // Signal should now have no active subscribers
-      // @ts-ignore: Accessing internal property for testing
+      // Dependencies should be cleared when effect references are gone
       expect(mainSignal._deps.size).toBe(0);
 
-      // Clean up for GC
       if (global.gc) {
         global.gc();
       }
 
-      // Wait for potential GC
       await tick(0);
 
-      // The test passes if we reach this point
       expect(true).toBe(true);
     });
   });

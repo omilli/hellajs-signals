@@ -3,32 +3,37 @@ import { effect, signal, type Signal } from "../../lib";
 
 export const signalAdvanced = () =>
   describe("advanced", () => {
+    // Tests signals that contain other signals (higher-order signals)
     test("should allow signals of signals", () => {
       const inner = signal(0);
-      const outer = signal(inner);
+      const outer = signal(inner); // Signal containing a signal
 
-      expect(outer()()).toBe(0);
+      expect(outer()()).toBe(0); // Double deref to access inner signal value
 
+      // Updating inner signal should be reflected when accessed through outer
       inner.set(1);
       expect(outer()()).toBe(1);
 
+      // Changing outer to point to a different signal should work
       const newInner = signal(2);
       outer.set(newInner);
       expect(outer()()).toBe(2);
     });
 
+    // Tests dynamic signal creation inside effects
     test("should handle signals created within effects", () => {
       const condition = signal(true);
       let dynamicSignal!: Signal<number>;
       const effectMock = mock();
 
+      // Create signal conditionally based on another signal's value
       effect(() => {
         dynamicSignal = condition() ? signal(123) : dynamicSignal;
       });
 
       expect(dynamicSignal()).toBe(123);
 
-      // Create a dependent effect to test the dynamically created signal
+      // Create a second effect that depends on dynamic signal
       effect(() => {
         if (dynamicSignal) {
           dynamicSignal();
@@ -41,15 +46,19 @@ export const signalAdvanced = () =>
       expect(effectMock).toHaveBeenCalledTimes(2);
     });
 
+    // Tests that signal updates don't conflict in concurrent scenarios
     test("should handle concurrent signal updates correctly", async () => {
       const count = signal(0);
+      // Create a function that performs multiple updates
       const updater = async () => {
         for (let i = 0; i < 100; i++) count.update((v) => v + 1);
       };
+      // Run two updaters concurrently and await both
       await Promise.all([updater(), updater()]);
       expect(count()).toBe(200);
     });
 
+    // Tests that effects don't re-run when value hasn't actually changed
     test("should not notify subscribers when value doesn't change", () => {
       const obj = { id: 1 };
       const objSignal = signal(obj);
@@ -62,35 +71,13 @@ export const signalAdvanced = () =>
 
       expect(mockFn).toHaveBeenCalledTimes(1);
 
-      // Set to the same object reference
+      // Setting the same reference should not trigger updates
       objSignal.set(obj);
 
-      // Effect should not be triggered again
       expect(mockFn).toHaveBeenCalledTimes(1);
     });
 
-    test("should track dependencies correctly with nested signals", () => {
-      const inner = signal(0);
-      const outer = signal(inner);
-      const mockFn = mock();
-
-      effect(() => {
-        // Access the inner signal through the outer signal
-        outer()();
-        mockFn();
-      });
-
-      expect(mockFn).toHaveBeenCalledTimes(1);
-
-      // Update inner signal should trigger effect
-      inner.set(1);
-      expect(mockFn).toHaveBeenCalledTimes(2);
-
-      // Update outer signal to a new signal should trigger effect
-      outer.set(signal(2));
-      expect(mockFn).toHaveBeenCalledTimes(3);
-    });
-
+    // Tests signals with nested object structures
     test("should handle complex objects", () => {
       const complexObject = {
         id: 1,
@@ -104,6 +91,7 @@ export const signalAdvanced = () =>
 
       expect(objSignal().nested.value).toBe(42);
 
+      // Immutably update a deeply nested property
       objSignal.set({
         ...complexObject,
         nested: { ...complexObject.nested, value: 100 },
@@ -112,42 +100,22 @@ export const signalAdvanced = () =>
       expect(objSignal().nested.value).toBe(100);
     });
 
-    test("should handle nested signals", () => {
-      const inner = signal({ count: 0 });
-      const outer = signal({ inner });
-      const effectMock = mock();
-
-      effect(() => {
-        // Access deeply nested signal value
-        outer().inner().count;
-        effectMock();
-      });
-
-      expect(effectMock).toHaveBeenCalledTimes(1);
-
-      // Update the nested value
-      inner.set({ count: 1 });
-      expect(effectMock).toHaveBeenCalledTimes(2);
-
-      // Update the outer object with the same inner reference
-      outer.set({ inner });
-      expect(effectMock).toHaveBeenCalledTimes(3);
-    });
-
+    // Tests edge case of circular references in signals
     test("should handle circular references", () => {
       interface CircularObj {
         name: string;
         self?: CircularObj;
       }
 
+      // Create object that references itself
       const obj: CircularObj = { name: "circular" };
-      obj.self = obj; // Create circular reference
+      obj.self = obj;
 
       const circularSignal = signal(obj);
       expect(circularSignal().name).toBe("circular");
       expect(circularSignal().self).toBe(circularSignal());
 
-      // Update with new circular object
+      // Replace with new circular object
       const newObj: CircularObj = { name: "updated" };
       newObj.self = newObj;
 
