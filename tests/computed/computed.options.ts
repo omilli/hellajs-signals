@@ -2,8 +2,8 @@ import { describe, test, expect } from "bun:test";
 import { type Signal, type SignalValue } from "../../lib";
 
 import { computedKeepAlive } from "./options/computed.keepAlive";
-import { computedErrors } from "./options/computed.errors";
-import { computedCallbacks } from "./options/computed.callbacks";
+import { computedOnError } from "./options/computed.onError";
+import { computedOnComputed } from "./options/computed.onComputed";
 import { computedCombinations } from "./options/computed.combinations";
 
 export const computedOptions = (
@@ -17,7 +17,7 @@ export const computedOptions = (
     });
 
     computedKeepAlive(count);
-    computedErrors(count);
-    computedCallbacks(count);
+    computedOnError(count);
+    computedOnComputed(count);
     computedCombinations(count);
   });

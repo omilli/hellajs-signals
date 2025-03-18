@@ -2,7 +2,7 @@ import { describe, test, expect, mock } from "bun:test";
 import { computed, type Signal } from "../../../lib";
 
 export const computedKeepAlive = (count: Signal<number>) =>
-  describe("keepAlive option", () => {
+  describe("keepAlive", () => {
     test("should compute value immediately when dependencies change", () => {
       // Mock to track computation function calls
       const computeFn = mock(() => count() * 2);

@@ -1,8 +1,8 @@
 import { describe, test, expect, mock } from "bun:test";
 import { signal, computed, effect, type Signal } from "../../../lib";
 
-export const computedCallbacks = (count: Signal<number>) =>
-  describe("callback options", () => {
+export const computedOnComputed = (count: Signal<number>) =>
+  describe("callbacks", () => {
     test("should call onComputed when value is computed", () => {
       // Create callback mock
       const onComputedMock = mock();
