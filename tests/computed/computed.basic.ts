@@ -7,37 +7,38 @@ export const computedBasic = (
 ) =>
   describe("basic", () => {
     test("should compute initial value", () => {
+      // Verify that the computed value correctly reflects its dependencies initially
       expect(doubled()).toBe(2);
     });
 
     test("should update when dependencies change", () => {
+      // Verify that changing a dependency updates the computed value
       count.set(2);
       expect(doubled()).toBe(4);
     });
 
     test("should not recompute until accessed", () => {
+      // Mock the compute function to track calls
       const computeFn = mock(() => count() * 2);
       const doubled = computed(computeFn);
 
-      // Computation happens only once when creating the computed
+      // Initial computation occurs during computed creation
+      // (implementation detail, could vary)
       expect(computeFn).toHaveBeenCalledTimes(1);
 
-      // Access the value
+      // First access - should cause a computation
       expect(doubled()).toBe(2);
-
       expect(computeFn).toHaveBeenCalledTimes(2);
 
-      // Update dependency but don't access computed
+      // Update dependency but don't access computed yet
       count.set(2);
 
-      // Access the computed value - this will see the outdated cached value
+      // Now access - this should trigger recomputation
       expect(doubled()).toBe(4);
-      // Now the computation should have run
       expect(computeFn).toHaveBeenCalledTimes(4);
 
-      // Access again without changing dependency
+      // Accessing again without changes shouldn't trigger recomputation
       expect(doubled()).toBe(4);
-      // No additional computation should happen
       expect(computeFn).toHaveBeenCalledTimes(4);
     });
   });
