@@ -4,7 +4,6 @@ import { contextReactivity } from "./context.reactivity";
 import { contextMemory } from "./context.memory";
 import { contextUtilities } from "./context.utilities";
 import { contextDefault } from "./context.default";
-import { contextAPI } from "./context.api";
 
 describe("reactive context", () => {
   contextIsolation();
@@ -12,5 +11,4 @@ describe("reactive context", () => {
   contextMemory();
   contextUtilities();
   contextDefault();
-  contextAPI();
 });

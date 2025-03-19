@@ -1,16 +1,16 @@
 import type {
-	ComputedFn,
-	ComputedOptions,
-	ContextState,
-	EffectFn,
-	EffectOptions,
-	ReactiveContext,
-	Signal,
-	SignalOptions,
-	SignalValue,
+  ComputedFn,
+  ComputedOptions,
+  ContextState,
+  EffectFn,
+  EffectOptions,
+  ReactiveContext,
+  Signal,
+  SignalOptions,
+  SignalValue,
 } from "../types";
 import { createReactiveState } from "../utils/state";
-import { registerContextState, withContext } from "./utils";
+import { registerContextState } from "./utils";
 
 /**
  * Creates an isolated reactive context
@@ -23,95 +23,63 @@ import { registerContextState, withContext } from "./utils";
  * @returns A reactive context object with API methods
  */
 export function createReactiveContext(
-	dependencies: ReactiveContext,
+  dependencies: ReactiveContext
 ): ReactiveContext {
-	const id = `ctx_${Math.random().toString(36).slice(2, 10)}`;
-	const state = createReactiveState(id);
-	const context = createContext(dependencies, state);
-	registerContextState(context, state);
-	return context;
+  const id = `ctx_${Math.random().toString(36).slice(2, 10)}`;
+  const state = createReactiveState(id);
+  const context = createContext(dependencies, state);
+  registerContextState(context, state);
+  return context;
 }
 
 function createContext(dependencies: ReactiveContext, state: ContextState) {
-	/**
-	 * Creates a reactive context for managing signals and effects.
-	 *
-	 * This context provides methods for creating reactive signals, effects,
-	 * computed values, batch updates, and untracked computations. It also
-	 * includes a dispose method for cleaning up resources associated with the
-	 * context.
-	 */
-	const context: ReactiveContext = {
-		signal: <T>(initialValue: T, options?: SignalOptions<T>): Signal<T> => {
-			return withContext(context, () => {
-				const s = dependencies.signal(initialValue, options);
-				state.signals.add(s);
-				return s;
-			});
-		},
+  const context = {} as ReactiveContext;
 
-		effect: (fn: EffectFn, options?: EffectOptions): EffectFn => {
-			return withContext(context, () => {
-				const cleanup = dependencies.effect(fn, options) as EffectFn;
-				const wrappedCleanup = () => {
-					state.effects.delete(cleanup);
-					return cleanup();
-				};
+  context.signal = <T>(
+    initialValue: T,
+    options?: SignalOptions<T>
+  ): Signal<T> => {
+    const s = dependencies.signal(initialValue, options);
+    state.signals.add(s);
+    return s;
+  };
 
-				state.effects.add(cleanup);
+  context.effect = (fn: EffectFn, options?: EffectOptions): EffectFn => {
+    const cleanup = dependencies.effect(fn, options) as EffectFn;
+    const wrappedCleanup = () => {
+      state.effects.delete(cleanup);
+      return cleanup();
+    };
 
-				for (const prop of Object.getOwnPropertyNames(cleanup)) {
-					if (prop !== "name" && prop !== "length") {
-						Object.defineProperty(
-							wrappedCleanup,
-							prop,
-							Object.getOwnPropertyDescriptor(
-								cleanup,
-								prop,
-							) as PropertyDescriptor,
-						);
-					}
-				}
+    state.effects.add(cleanup);
 
-				if (cleanup._effect) {
-					Object.defineProperty(wrappedCleanup, "_effect", {
-						value: cleanup._effect,
-					});
-				}
+    for (const prop of Object.getOwnPropertyNames(cleanup)) {
+      if (prop !== "name" && prop !== "length") {
+        Object.defineProperty(
+          wrappedCleanup,
+          prop,
+          Object.getOwnPropertyDescriptor(cleanup, prop) as PropertyDescriptor
+        );
+      }
+    }
 
-				return wrappedCleanup;
-			});
-		},
+    if (cleanup._effect) {
+      Object.defineProperty(wrappedCleanup, "_effect", {
+        value: cleanup._effect,
+      });
+    }
 
-		computed: <T>(
-			computedFn: ComputedFn<T>,
-			options?: ComputedOptions<T>,
-		): SignalValue<T> => {
-			return withContext(context, () => {
-				return dependencies.computed(computedFn, options);
-			});
-		},
+    return wrappedCleanup;
+  };
 
-		batch: <T>(fn: () => T): T => {
-			return withContext(context, () => {
-				return dependencies.batch(fn);
-			});
-		},
+  context.computed = <T>(
+    computedFn: ComputedFn<T>,
+    options?: ComputedOptions<T>
+  ): SignalValue<T> => dependencies.computed(computedFn, options);
 
-		untracked: <T>(fn: () => T): T => {
-			return withContext(context, () => {
-				return dependencies.untracked(fn);
-			});
-		},
+  context.batch = <T>(fn: () => T): T => dependencies.batch(fn);
 
-		dispose: () => {
-			for (const cleanup of state.effects) {
-				cleanup();
-			}
-			state.signals = new WeakSet();
-			state.effectDependencies.clear();
-		},
-	};
+  context.untracked = <T>(fn: () => T): T => dependencies.untracked(fn);
 
-	return context;
+  return context;
 }

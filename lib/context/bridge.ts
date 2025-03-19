@@ -14,7 +14,7 @@ let contextFactory: (() => ReactiveContext) | null = null;
  * @param factory A function that returns a new instance of `ReactiveContext`.
  */
 export function registerContextFactory(factory: () => ReactiveContext): void {
-	contextFactory = factory;
+  contextFactory = factory;
 }
 
 /**
@@ -24,8 +24,8 @@ export function registerContextFactory(factory: () => ReactiveContext): void {
  * @throws {Error} If no context factory has been registered.
  */
 export function createDefaultContext(): ReactiveContext {
-	if (!contextFactory) {
-		throw new Error("Context factory not registered");
-	}
-	return contextFactory();
+  if (!contextFactory) {
+    throw new Error("Context factory not registered");
+  }
+  return contextFactory();
 }
